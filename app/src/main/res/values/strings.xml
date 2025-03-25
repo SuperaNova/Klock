@@ -58,4 +58,12 @@
     <string name="attachment_summary_on">Automatically download attachments for incoming emails
     </string>
     <string name="attachment_summary_off">Only download attachments when manually requested</string>
+
+    <!-- main Activity and Fragments -->
+    <string name="title_activity_klock">KlockActivity</string>
+    <string name="title_worldClock">World Clock</string>
+    <string name="title_alarm">Alarm</string>
+    <string name="title_stopwatch">Stopwatch</string>
+    <string name="title_timer">Timer</string>
+
 </resources>
