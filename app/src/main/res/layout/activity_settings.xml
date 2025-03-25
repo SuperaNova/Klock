@@ -15,7 +15,7 @@
         android:layout_height="match_parent"
         android:background="@color/eggshell_white"
         android:padding="10dp"
-        tools:context=".SettingsActivity"
+        tools:context=".ui.settings.SettingsActivity"
         android:layout_gravity="center">
 
         <LinearLayout

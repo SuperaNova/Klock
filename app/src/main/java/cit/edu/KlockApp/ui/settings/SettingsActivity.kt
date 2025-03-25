@@ -1,10 +1,13 @@
-package cit.edu.KlockApp
+package cit.edu.KlockApp.ui.settings
 
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.ImageButton
+import cit.edu.KlockApp.AboutUsActivity
+import cit.edu.KlockApp.LoginActivity
+import cit.edu.KlockApp.R
 
 class SettingsActivity : Activity() {
 

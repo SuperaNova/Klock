@@ -1,4 +1,4 @@
-package cit.edu.KlockApp
+package cit.edu.KlockApp.ui.main
 
 import android.os.Bundle
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -7,6 +7,7 @@ import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
+import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.ActivityKlockBinding
 
 class KlockActivity : AppCompatActivity() {
@@ -15,6 +16,7 @@ class KlockActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
 
         binding = ActivityKlockBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -26,10 +28,13 @@ class KlockActivity : AppCompatActivity() {
         // menu should be considered as top level destinations.
         val appBarConfiguration = AppBarConfiguration(
             setOf(
-                R.id.navigation_worldClock, R.id.navigation_alarm, R.id.navigation_stopwatch, R.id.navigation_timer
+                R.id.navigation_worldClock,
+                R.id.navigation_alarm,
+                R.id.navigation_stopwatch,
+                R.id.navigation_timer
             )
         )
-//        setupActionBarWithNavController(navController, appBarConfiguration)
+        setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
     }
 }

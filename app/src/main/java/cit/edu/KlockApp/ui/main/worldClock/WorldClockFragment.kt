@@ -7,11 +7,11 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import cit.edu.KlockApp.databinding.FragmentDashboardBinding
+import cit.edu.KlockApp.databinding.FragmentWorldclockBinding
 
 class WorldClockFragment : Fragment() {
 
-    private var _binding: FragmentDashboardBinding? = null
+    private var _binding: FragmentWorldclockBinding? = null
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -25,10 +25,10 @@ class WorldClockFragment : Fragment() {
         val worldClockViewModel =
             ViewModelProvider(this)[WorldClockViewModel::class.java]
 
-        _binding = FragmentDashboardBinding.inflate(inflater, container, false)
+        _binding = FragmentWorldclockBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        val textView: TextView = binding.textDashboard
+        val textView: TextView = binding.textWorldClock
         worldClockViewModel.text.observe(viewLifecycleOwner) {
             textView.text = it
         }

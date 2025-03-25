@@ -6,16 +6,16 @@
     app:startDestination="@+id/navigation_worldClock">
 
     <fragment
-        android:id="@+id/navigation_alarm"
-        android:name="cit.edu.KlockApp.ui.main.alarm.AlarmFragment"
-        android:label="@string/title_alarm"
-        tools:layout="@layout/fragment_alarm" />
-
-    <fragment
         android:id="@+id/navigation_worldClock"
         android:name="cit.edu.KlockApp.ui.main.worldClock.WorldClockFragment"
         android:label="@string/title_worldClock"
         tools:layout="@layout/fragment_worldclock" />
+
+    <fragment
+        android:id="@+id/navigation_alarm"
+        android:name="cit.edu.KlockApp.ui.main.alarm.AlarmFragment"
+        android:label="@string/title_alarm"
+        tools:layout="@layout/fragment_alarm" />
 
     <fragment
         android:id="@+id/navigation_timer"
