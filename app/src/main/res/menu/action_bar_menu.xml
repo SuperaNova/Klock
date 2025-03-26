@@ -5,10 +5,15 @@
         android:id="@+id/action_add"
         android:icon="@drawable/add_icon_24dp"
         android:title="@string/menu_add"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="always" />
     <item
         android:id="@+id/action_settings"
         android:icon="@drawable/settings_icon_24dp"
         android:title="@string/menu_setting"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/action_profile"
+        android:icon="@drawable/person_24px"
+        android:title="@string/menu_profile"
+        app:showAsAction="always" />
 </menu>

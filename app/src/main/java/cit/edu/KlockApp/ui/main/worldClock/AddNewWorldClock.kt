@@ -33,7 +33,7 @@ class AddNewWorldClock : BottomSheetDialogFragment() {
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(view: View,  savedInstanceState: Bundle?) {
         binding.list.layoutManager = LinearLayoutManager(context)
         binding.list.adapter = TimeZoneAdapter(4) // Adjust item count as needed
     }

@@ -12,6 +12,7 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import cit.edu.KlockApp.LoginActivity
+import cit.edu.KlockApp.ProfileActivity
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.ActivityKlockBinding
 import cit.edu.KlockApp.ui.main.worldClock.AddNewWorldClock
@@ -83,6 +84,11 @@ class KlockActivity : AppCompatActivity() {
                 } else { // testing with other fragment
                     AddNewWorldClock().show(supportFragmentManager, "AddNewWorldClock")
                 }
+                true
+            }
+            R.id.action_profile -> {
+                val intent = Intent(this, ProfileActivity::class.java)
+                startActivity(intent)
                 true
             }
             else -> super.onOptionsItemSelected(item)
