@@ -8,7 +8,7 @@ import android.os.Bundle
 import android.widget.Button
 
 
-class ProfileActivity : Activity() {
+class   ProfileActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
