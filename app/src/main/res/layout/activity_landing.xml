@@ -237,7 +237,7 @@
             android:backgroundTint="#EFE9D5"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:src="@drawable/settings" />
+            android:src="@drawable/settings_icon_24dp" />
 
         <AnalogClock
             android:id="@+id/analogClock"

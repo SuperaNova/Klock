@@ -7,6 +7,7 @@ import android.widget.Button
 import android.widget.ImageButton
 import cit.edu.KlockApp.AboutUsActivity
 import cit.edu.KlockApp.LoginActivity
+import cit.edu.KlockApp.ProfileActivity
 import cit.edu.KlockApp.R
 
 class SettingsActivity : Activity() {
@@ -20,6 +21,7 @@ class SettingsActivity : Activity() {
             finish()
         }
 
+        // TODO: add local storage for account information (login is least priority)
         val buttonProfile = findViewById<Button>(R.id.profile_view)
         buttonProfile.setOnClickListener {
             startActivity(Intent(this, LoginActivity::class.java))

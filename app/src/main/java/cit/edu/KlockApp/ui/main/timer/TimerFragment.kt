@@ -1,4 +1,4 @@
-package cit.edu.KlockApp.ui.main.stopwatch
+package cit.edu.KlockApp.ui.main.timer
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -7,12 +7,11 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import cit.edu.KlockApp.databinding.FragmentStopwatchBinding
-import cit.edu.KlockApp.ui.notifications.stopwatchViewModel
+import cit.edu.KlockApp.databinding.FragmentTimerBinding
 
-class stopwatchFragment : Fragment() {
+class TimerFragment : Fragment() {
 
-    private var _binding: FragmentStopwatchBinding? = null
+    private var _binding: FragmentTimerBinding? = null
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -23,14 +22,14 @@ class stopwatchFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val notificationsViewModel =
-            ViewModelProvider(this)[stopwatchViewModel::class.java]
+        val timerViewModel =
+            ViewModelProvider(this)[TimerViewModel::class.java]
 
-        _binding = FragmentStopwatchBinding.inflate(inflater, container, false)
+        _binding = FragmentTimerBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
         val textView: TextView = binding.textTimer
-        notificationsViewModel.text.observe(viewLifecycleOwner) {
+        timerViewModel.text.observe(viewLifecycleOwner) {
             textView.text = it
         }
         return root
