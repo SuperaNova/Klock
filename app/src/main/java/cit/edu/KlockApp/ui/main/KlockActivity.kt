@@ -80,6 +80,8 @@ class KlockActivity : AppCompatActivity() {
 
                 if (currentFragment is WorldClockFragment) {
                     currentFragment.addNewWorldClockItem("Testing, 1, 2, 3, tested")
+                } else { // testing with other fragment
+                    AddNewWorldClock().show(supportFragmentManager, "AddNewWorldClock")
                 }
                 true
             }
