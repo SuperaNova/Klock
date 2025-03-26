@@ -12,6 +12,13 @@ class AlarmViewModel : ViewModel() {
         value = listOf(
             Alarm(Time.valueOf("08:00:00"), true, Date.valueOf("2025-03-26")),
             Alarm(Time.valueOf("12:00:00"), false, Date.valueOf("2025-03-27")),
+            Alarm(Time.valueOf("12:00:00"), false, Date.valueOf("2025-03-27")),
+            Alarm(Time.valueOf("12:00:00"), false, Date.valueOf("2025-03-27")),
+            Alarm(Time.valueOf("12:00:00"), false, Date.valueOf("2025-03-27")),
+            Alarm(Time.valueOf("12:00:00"), false, Date.valueOf("2025-03-27")),
+            Alarm(Time.valueOf("12:00:00"), false, Date.valueOf("2025-03-27")),
+            Alarm(Time.valueOf("12:00:00"), false, Date.valueOf("2025-03-27")),
+            Alarm(Time.valueOf("12:00:00"), false, Date.valueOf("2025-03-27")),
             Alarm(Time.valueOf("18:00:00"), true, Date.valueOf("2025-03-28"))
         )
     }
