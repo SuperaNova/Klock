@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import cit.edu.KlockApp.databinding.FragmentAlarmBinding
@@ -28,10 +27,11 @@ class AlarmFragment : Fragment() {
         _binding = FragmentAlarmBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        val textView: TextView = binding.textAlarm
-        alarmViewModel.text.observe(viewLifecycleOwner) {
-            textView.text = it
+        alarmViewModel.alarms.observe(viewLifecycleOwner) { alarms ->
+            val adapter = AlarmAdapter(requireContext(), alarms)
+            binding.alarmList.adapter = adapter
         }
+
         return root
     }
 
