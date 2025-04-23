@@ -4,20 +4,163 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.main.timer.TimerFragment">
+    tools:context=".ui.main.timer.TimerFragment"
+    android:padding="16dp">
 
-    <!--        android:id="@+id/text_notifications"-->
-    <TextView
-        android:id="@+id/text_timer"
-        android:layout_width="match_parent"
+    <!-- Guideline to avoid status bar/action bar area if needed -->
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guidelineTop"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        android:textAlignment="center"
-        android:textSize="20sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_begin="16dp" /> 
+
+    <!-- Timer Setup Group (Visible when Idle) -->
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/groupTimerSetup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:constraint_referenced_ids="pickerHours, pickerMinutes, pickerSeconds, labelHours, labelMinutes, labelSeconds" 
+        android:visibility="visible"/> 
+
+    <NumberPicker
+        android:id="@+id/pickerHours"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintTop_toBottomOf="@id/guidelineTop" 
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toStartOf="@+id/pickerMinutes"/>
+        
+    <TextView
+        android:id="@+id/labelHours"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="H"
+        app:layout_constraintTop_toBottomOf="@id/pickerHours"
+        app:layout_constraintStart_toStartOf="@id/pickerHours"
+        app:layout_constraintEnd_toEndOf="@id/pickerHours"/>
+
+    <NumberPicker
+        android:id="@+id/pickerMinutes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="@id/pickerHours"
+        app:layout_constraintStart_toEndOf="@+id/pickerHours"
+        app:layout_constraintEnd_toStartOf="@+id/pickerSeconds"
+        app:layout_constraintBottom_toBottomOf="@id/pickerHours"/>
+
+    <TextView
+        android:id="@+id/labelMinutes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="M"
+        app:layout_constraintTop_toBottomOf="@id/pickerMinutes"
+        app:layout_constraintStart_toStartOf="@id/pickerMinutes"
+        app:layout_constraintEnd_toEndOf="@id/pickerMinutes"/>
+
+    <NumberPicker
+        android:id="@+id/pickerSeconds"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="@id/pickerHours"
+        app:layout_constraintStart_toEndOf="@+id/pickerMinutes"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="@id/pickerHours"/>
+        
+    <TextView
+        android:id="@+id/labelSeconds"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="S"
+        app:layout_constraintTop_toBottomOf="@id/pickerSeconds"
+        app:layout_constraintStart_toStartOf="@id/pickerSeconds"
+        app:layout_constraintEnd_toEndOf="@id/pickerSeconds"/>
+
+
+    <!-- Timer Running/Paused Group (Visible when Running/Paused) -->
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/groupTimerRunning"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:constraint_referenced_ids="timerProgressCircle, timerDigitalDisplay, timerEndTimeText" 
+        android:visibility="gone"
+        tools:visibility="visible"/> 
+        
+    <ProgressBar
+        android:id="@+id/timerProgressCircle"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="32dp"
+        android:indeterminate="false"
+        android:max="100"
+        android:progress="60"
+        android:progressDrawable="@drawable/circular_progress_bar"
+        android:rotation="-90" 
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintTop_toBottomOf="@id/guidelineTop" 
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintWidth_max="300dp" 
+        app:layout_constraintHeight_max="300dp"/> 
+
+    <TextView
+        android:id="@+id/timerDigitalDisplay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="48sp"
+        android:fontFamily="sans-serif-light"
+        android:textColor="?android:attr/textColorPrimary"
+        app:layout_constraintTop_toTopOf="@id/timerProgressCircle"
+        app:layout_constraintBottom_toBottomOf="@id/timerProgressCircle"
+        app:layout_constraintStart_toStartOf="@id/timerProgressCircle"
+        app:layout_constraintEnd_toEndOf="@id/timerProgressCircle"
+        tools:text="10:30" />
+        
+    <TextView
+        android:id="@+id/timerEndTimeText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textSize="16sp"
+        android:textColor="?android:attr/textColorSecondary"
+        app:layout_constraintTop_toBottomOf="@id/timerProgressCircle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:text="Ends at 10:30 PM" />
+
+    <!-- Buttons -->
+    <LinearLayout
+        android:id="@+id/timerButtonContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp" 
+        app:layout_constraintBottom_toBottomOf="parent" 
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Button
+            android:id="@+id/cancelButton"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="@string/cancel"
+            android:visibility="invisible" 
+            tools:visibility="visible"/>
+
+        <Button
+            android:id="@+id/startPauseButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="@string/start" />
+
+    </LinearLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

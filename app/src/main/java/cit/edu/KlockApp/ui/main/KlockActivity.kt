@@ -19,6 +19,7 @@ class KlockActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityKlockBinding
     private var shouldShowSettings: Boolean = true
+    private var shouldShowAddButton: Boolean = true // Flag for Add button visibility
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,11 +50,12 @@ class KlockActivity : AppCompatActivity() {
                 else -> getString(R.string.app_name)
             }
 
-            shouldShowSettings = destination.id == R.id.navigation_worldClock // used in world clock
+            // Determine button visibility based on destination
+            shouldShowSettings = destination.id == R.id.navigation_worldClock
+            shouldShowAddButton = destination.id == R.id.navigation_worldClock // Only show Add for World Clock
+            
             invalidateOptionsMenu() // Refresh menu visibility
         }
-
-
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -74,6 +76,7 @@ class KlockActivity : AppCompatActivity() {
                     supportFragmentManager.findFragmentById(R.id.nav_host_fragment_activity_klock)
                 val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
 
+                // Only trigger action if it's the WorldClockFragment (as Add button is only shown there)
                 if (currentFragment is WorldClockFragment) {
                     currentFragment.showTimeZoneSelectionDialog()
                 }
@@ -83,11 +86,9 @@ class KlockActivity : AppCompatActivity() {
         }
     }
 
-
-
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
         menu?.findItem(R.id.action_settings)?.isVisible = shouldShowSettings
+        menu?.findItem(R.id.action_add)?.isVisible = shouldShowAddButton // Set Add button visibility
         return super.onPrepareOptionsMenu(menu)
     }
-
 }
