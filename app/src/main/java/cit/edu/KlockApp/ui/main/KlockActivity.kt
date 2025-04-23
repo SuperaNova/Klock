@@ -4,20 +4,16 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
-import cit.edu.KlockApp.LoginActivity
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.ActivityKlockBinding
-import cit.edu.KlockApp.ui.main.worldClock.AddNewWorldClock
 import cit.edu.KlockApp.ui.main.worldClock.WorldClockFragment
 import cit.edu.KlockApp.ui.settings.SettingsActivity
-import kotlin.properties.Delegates
 
 class KlockActivity : AppCompatActivity() {
 
@@ -79,9 +75,7 @@ class KlockActivity : AppCompatActivity() {
                 val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
 
                 if (currentFragment is WorldClockFragment) {
-                    currentFragment.addNewWorldClockItem("Testing, 1, 2, 3, tested")
-                } else { // testing with other fragment
-                    AddNewWorldClock().show(supportFragmentManager, "AddNewWorldClock")
+                    currentFragment.showTimeZoneSelectionDialog()
                 }
                 true
             }

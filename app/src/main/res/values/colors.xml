@@ -13,4 +13,7 @@
     <color name="eggshell_white">#F0EAD6</color>
     <color name="oxford_blue">#212A37</color>
     <color name="eggshell_white_darkened">#CCC6B5</color>
+
+    <!-- Removed Day/Night Backgrounds for World Clock Item -->
+
 </resources>
