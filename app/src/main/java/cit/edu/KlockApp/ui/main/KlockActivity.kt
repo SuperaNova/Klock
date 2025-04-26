@@ -12,6 +12,7 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.ActivityKlockBinding
+import cit.edu.KlockApp.ui.main.alarm.AlarmFragment
 import cit.edu.KlockApp.ui.main.worldClock.WorldClockFragment
 import cit.edu.KlockApp.ui.settings.SettingsActivity
 
@@ -52,7 +53,7 @@ class KlockActivity : AppCompatActivity() {
 
             // Determine button visibility based on destination
             shouldShowSettings = destination.id == R.id.navigation_worldClock
-            shouldShowAddButton = destination.id == R.id.navigation_worldClock // Only show Add for World Clock
+            shouldShowAddButton = destination.id == R.id.navigation_worldClock || destination.id == R.id.navigation_alarm
             
             invalidateOptionsMenu() // Refresh menu visibility
         }
@@ -71,14 +72,13 @@ class KlockActivity : AppCompatActivity() {
                 true
             }
             R.id.action_add -> {
-                // Get the current fragment
                 val navHostFragment =
                     supportFragmentManager.findFragmentById(R.id.nav_host_fragment_activity_klock)
                 val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
 
-                // Only trigger action if it's the WorldClockFragment (as Add button is only shown there)
-                if (currentFragment is WorldClockFragment) {
-                    currentFragment.showTimeZoneSelectionDialog()
+                when (currentFragment) {
+                    is WorldClockFragment -> currentFragment.showTimeZoneSelectionDialog()
+                    is AlarmFragment -> currentFragment.showAddAlarmDialog()
                 }
                 true
             }

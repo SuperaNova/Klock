@@ -82,5 +82,9 @@
     <string name="reset">Reset</string>
 
     <string name="cancel">Cancel</string>
+    <string name="add_preset">Add Preset</string>
+
+    <!-- Timer Preset -->
+    <string name="preset_button_content_description">Preset button: %1$s, Duration: %2$s</string>
 
 </resources>
