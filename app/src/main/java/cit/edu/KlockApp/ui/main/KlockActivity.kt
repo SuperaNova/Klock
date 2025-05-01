@@ -21,6 +21,7 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.ActivityKlockBinding
+import cit.edu.KlockApp.ui.main.worldClock.WorldClockFragment
 import cit.edu.KlockApp.ui.main.alarm.AlarmAddActivity
 import cit.edu.KlockApp.ui.main.alarm.AlarmFragment
 import cit.edu.KlockApp.ui.settings.SettingsActivity
@@ -88,12 +89,12 @@ class KlockActivity : AppCompatActivity() {
                 true
             }
             R.id.action_add -> {
-                // Get the current fragment
                 val navHostFragment =
                     supportFragmentManager.findFragmentById(R.id.nav_host_fragment_activity_klock)
                 val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
 
                 when (currentFragment) {
+                    is WorldClockFragment -> currentFragment.showTimeZoneSelectionDialog()
                     is AlarmFragment -> currentFragment.launchAddAlarm()
                 }
                 true

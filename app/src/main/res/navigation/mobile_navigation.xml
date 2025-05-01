@@ -21,11 +21,28 @@
         android:id="@+id/navigation_timer"
         android:name="cit.edu.KlockApp.ui.main.timer.TimerFragment"
         android:label="@string/title_timer"
-        tools:layout="@layout/fragment_timer" />
+        tools:layout="@layout/fragment_timer">
+        <action
+            android:id="@+id/action_timerFragment_to_addEditPresetFragment"
+            app:destination="@id/addEditPresetFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/navigation_stopwatch"
         android:name="cit.edu.KlockApp.ui.main.stopwatch.StopwatchFragment"
         android:label="@string/title_stopwatch"
         tools:layout="@layout/fragment_stopwatch" />
+
+    <fragment
+        android:id="@+id/addEditPresetFragment"
+        android:name="cit.edu.KlockApp.ui.main.timer.AddEditPresetFragment"
+        android:label="Add/Edit Preset" 
+        tools:layout="@layout/fragment_add_edit_preset">
+        <argument
+            android:name="presetId"
+            app:argType="string"
+            app:nullable="true" 
+            android:defaultValue="null" /> 
+    </fragment>
+
 </navigation>

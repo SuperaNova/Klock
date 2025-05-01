@@ -38,7 +38,7 @@ class TimeZoneAdapter(
         }
         // Consider DiffUtil for better performance with large lists
         notifyDataSetChanged()
-    }
+        }
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val textView: TextView = itemView.findViewById(android.R.id.text1)
