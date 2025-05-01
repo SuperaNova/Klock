@@ -26,6 +26,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         ignoreUnknownKeys = true
     }
     private val ALARMS_KEY = "alarms_key"
+    private val FIRST_LAUNCH_KEY = "first_launch_key"  // Flag to track first launch
 
     private val _alarms = MutableLiveData<List<Alarm>>().apply {
         value = loadAlarms()
@@ -33,27 +34,27 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
     val alarms: LiveData<List<Alarm>> = _alarms
 
     private fun loadAlarms(): List<Alarm> {
-        val defaultAlarm = createDefaultAlarm()
         val stored = prefs.getString(ALARMS_KEY, null)
+        val firstLaunch = prefs.getBoolean(FIRST_LAUNCH_KEY, true)  // Check for first launch
 
-        // Only add the default alarm if no alarms are stored, and if the stored list is empty
-        return if (stored.isNullOrEmpty()) {
-            // If no alarms are stored, return an empty list instead of the default alarm
-            emptyList()
-        } else {
-            try {
-                val list = json.decodeFromString<List<Alarm>>(stored)
-                if (list.isEmpty()) {
-                    // Return an empty list if the stored list is empty, so no default alarm is added
-                    emptyList()
-                } else {
-                    list
-                }
-            } catch (e: Exception) {
-                Log.e("AlarmViewModel", "Parse error, using default: ${e.message}", e)
-                // If there's a parsing error, return an empty list (no default alarm added)
-                emptyList()
+        // If it's the first launch and there are no alarms, create a default alarm
+        if (firstLaunch) {
+            // Mark that the app has been opened before
+            prefs.edit().putBoolean(FIRST_LAUNCH_KEY, false).apply()
+
+            // If no alarms are stored, create and return default alarm
+            if (stored.isNullOrEmpty() || stored == "[]") {
+                return listOf(createDefaultAlarm())  // Add default alarm on first launch
             }
+        }
+
+        // If it's not the first launch, return the stored alarms or an empty list if none exist
+        return try {
+            val list = if (stored.isNullOrEmpty()) emptyList() else json.decodeFromString<List<Alarm>>(stored)
+            list
+        } catch (e: Exception) {
+            Log.e("AlarmViewModel", "Error parsing alarms: ${e.message}", e)
+            emptyList()  // Return empty list in case of error
         }
     }
 
@@ -83,13 +84,12 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         val current = _alarms.value.orEmpty().toMutableList()
         val idx = current.indexOfFirst { it.id == updated.id }
 
-        // Only update if the alarm is actually modified (not identical)
         if (idx >= 0) {
             val oldAlarm = current[idx]
             if (oldAlarm != updated) {  // Only update if the alarm actually changed
                 current[idx] = updated
-                _alarms.value = current  // Update LiveData
-                saveAlarms(current)      // Save to preferences
+                _alarms.value = current
+                saveAlarms(current)
                 Log.d("AlarmViewModel", "Updated alarm: ${updated.id}")
             }
         } else {
@@ -104,25 +104,22 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         val current = _alarms.value.orEmpty().toMutableList()
         val removed = current.removeAll { it.id == alarm.id }
 
-        // Only save if an alarm was removed
         if (removed) {
             _alarms.value = current
             saveAlarms(current)
             Log.d("AlarmViewModel", "Deleted alarm: ${alarm.id}")
+
+            // No action needed here because we don't want to re-trigger default alarm
         }
     }
 
     fun addAlarm(newAlarm: Alarm) {
         val current = _alarms.value.orEmpty().toMutableList()
 
-        // Determine the next ID by getting the highest existing ID and adding 1
         val nextId = current.maxOfOrNull { it.id }?.plus(1) ?: 1
-
-        // Create the alarm with the new ID
         val alarmWithId = newAlarm.copy(id = nextId)
         current.add(alarmWithId)
 
-        // Only save if the alarm was actually added
         if (_alarms.value != current) {
             _alarms.value = current
             saveAlarms(current)
@@ -130,5 +127,6 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 }
+
 
 

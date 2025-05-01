@@ -12,10 +12,8 @@ import android.provider.Settings
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
-import android.widget.ImageView
 import android.widget.Spinner
 import android.widget.Switch
-import android.widget.TextView
 import android.widget.TimePicker
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -30,9 +28,6 @@ abstract class BaseAlarmActivity : AppCompatActivity() {
     protected lateinit var labelEditText: EditText
     private lateinit var snoozeSpinner: Spinner
     private lateinit var vibrateSwitch: Switch
-    private lateinit var ivClose: ImageView
-    private lateinit var ivCheck: ImageView
-    protected lateinit var tvTitle: TextView
     protected lateinit var alarm: Alarm
     protected var selectedDays = mutableListOf<String>()
 
@@ -45,25 +40,6 @@ abstract class BaseAlarmActivity : AppCompatActivity() {
         setupSnoozeSpinner()
         setupRepeatDialog()
 
-        ivClose.setOnClickListener { finish() }
-
-        ivCheck.setOnClickListener {
-            updateAlarmFromUI()
-            if (!alarm.isEnabled) {
-                cancelAlarm()
-                Toast.makeText(this, "Alarm is disabled and won't be scheduled", Toast.LENGTH_SHORT).show()
-                returnWithResult()
-                return@setOnClickListener
-            }
-
-            val triggerTime = calculateNextTriggerTime() ?: run {
-                Toast.makeText(this, "No valid future repeat day found. Alarm not scheduled.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            scheduleAlarm(triggerTime)
-            handleFinalization()
-        }
     }
 
     abstract fun handleFinalization()
@@ -73,9 +49,6 @@ abstract class BaseAlarmActivity : AppCompatActivity() {
     abstract fun returnWithResult()
 
     private fun initializeViews() {
-        ivClose = findViewById(R.id.ivClose)
-        ivCheck = findViewById(R.id.ivCheck)
-        tvTitle = findViewById(R.id.tvTitle)
         labelEditText = findViewById(R.id.labelEditText)
         timePicker = findViewById(R.id.timePicker)
         repeatButton = findViewById(R.id.repeatButton)
@@ -104,7 +77,7 @@ abstract class BaseAlarmActivity : AppCompatActivity() {
         }
     }
 
-    private fun scheduleAlarm(triggerAt: Long) {
+    protected fun scheduleAlarm(triggerAt: Long) {
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
             startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
@@ -128,7 +101,7 @@ abstract class BaseAlarmActivity : AppCompatActivity() {
         Toast.makeText(this, "Alarm set for ${timePicker.hour.toString().padStart(2, '0')}:${timePicker.minute.toString().padStart(2, '0')}", Toast.LENGTH_SHORT).show()
     }
 
-    private fun calculateNextTriggerTime(): Long? {
+    protected fun calculateNextTriggerTime(): Long? {
         val triggerCal = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, timePicker.hour)
             set(Calendar.MINUTE, timePicker.minute)
@@ -163,7 +136,7 @@ abstract class BaseAlarmActivity : AppCompatActivity() {
         return null
     }
 
-    private fun cancelAlarm() {
+    protected fun cancelAlarm() {
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pi = PendingIntent.getBroadcast(
             this,

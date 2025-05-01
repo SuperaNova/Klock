@@ -21,7 +21,6 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.ActivityKlockBinding
-import cit.edu.KlockApp.ui.main.alarm.AlarmAddActivity
 import cit.edu.KlockApp.ui.main.alarm.AlarmFragment
 import cit.edu.KlockApp.ui.settings.SettingsActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -94,7 +93,10 @@ class KlockActivity : AppCompatActivity() {
                 val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
 
                 when (currentFragment) {
-                    is AlarmFragment -> currentFragment.launchAddAlarm()
+                    is AlarmFragment -> {
+                        currentFragment.launchAddAlarm()
+
+                    }
                 }
                 true
             }
