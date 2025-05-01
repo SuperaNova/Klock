@@ -131,4 +131,4 @@ class WorldClockDiffCallback : DiffUtil.ItemCallback<WorldClockItem>() {
     override fun areContentsTheSame(oldItem: WorldClockItem, newItem: WorldClockItem): Boolean {
         return oldItem == newItem
     }
-} 
+}

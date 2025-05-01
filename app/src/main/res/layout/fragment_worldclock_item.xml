@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/worldClockCard" 
+    android:id="@+id/worldClockCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="8dp"
@@ -19,26 +19,26 @@
         <!-- Analog Clock (Initially Hidden) -->
         <cit.edu.KlockApp.ui.custom.AnalogClockView
             android:id="@+id/itemAnalogClock"
-            android:layout_width="100dp" 
+            android:layout_width="100dp"
             android:layout_height="100dp"
-            android:visibility="gone" 
+            android:visibility="gone"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            tools:visibility="visible"/> 
+            tools:visibility="visible"/>
 
         <!-- City Name -->
         <TextView
             android:id="@+id/cityName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+            android:layout_marginTop="8dp"
             android:textSize="16sp"
             android:textColor="?android:attr/textColorPrimary"
-            app:layout_constraintTop_toBottomOf="@id/itemAnalogClock" 
+            app:layout_constraintTop_toBottomOf="@id/itemAnalogClock"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/currentTime" 
-            app:layout_goneMarginTop="0dp" 
+            app:layout_constraintEnd_toStartOf="@id/currentTime"
+            app:layout_goneMarginTop="0dp"
             tools:text="New York"/>
 
         <!-- Time Difference -->
@@ -51,7 +51,7 @@
             app:layout_constraintTop_toBottomOf="@id/cityName"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@id/currentTime"
-        app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             tools:text="-5 hours"/>
 
         <!-- Digital Time -->
@@ -62,12 +62,12 @@
             android:textSize="36sp"
             android:textStyle="bold"
             android:textColor="?android:attr/textColorPrimary"
-        app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/itemAnalogClock"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_goneMarginTop="0dp" 
+            app:layout_goneMarginTop="0dp"
             tools:text="10:30"/>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>

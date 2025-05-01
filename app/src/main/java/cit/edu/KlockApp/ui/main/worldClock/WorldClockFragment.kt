@@ -55,7 +55,7 @@ class WorldClockFragment : Fragment() {
             override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder) = false
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val position = viewHolder.adapterPosition
+                val position = viewHolder.bindingAdapterPosition
                 if (position != RecyclerView.NO_POSITION && position < worldClockListAdapter.currentList.size) {
                     val item = worldClockListAdapter.currentList[position]
                     viewModel.removeWorldClock(item.timeZoneId)
