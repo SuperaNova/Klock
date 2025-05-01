@@ -7,22 +7,25 @@
     android:padding="16dp"
     tools:context=".ui.main.timer.AddEditPresetFragment"> 
 
+    <!-- Removed Preset Name Input -->
+
     <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/tilPresetName"
+        android:id="@+id/tilPresetEmoji"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:hint="Preset Name"
+        android:hint="Emoji Icon"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
         <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etPresetName"
+            android:id="@+id/etPresetEmoji"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textCapWords"
+            android:inputType="text"
+            android:maxLength="2"
             android:maxLines="1" />
 
     </com.google.android.material.textfield.TextInputLayout>
@@ -34,7 +37,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         app:layout_constraintHorizontal_chainStyle="packed"
-        app:layout_constraintTop_toBottomOf="@id/tilPresetName"
+        app:layout_constraintTop_toBottomOf="@id/tilPresetEmoji"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/pickerMinutesPreset"/>
 

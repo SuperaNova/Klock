@@ -26,6 +26,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.button.MaterialButton
 import android.view.Gravity
 import java.lang.StringBuilder
+import androidx.recyclerview.widget.GridLayoutManager
+import android.util.Log
 
 class TimerFragment : Fragment() {
 
@@ -33,6 +35,7 @@ class TimerFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: TimerViewModel by activityViewModels()
+    private lateinit var presetAdapter: TimerPresetAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -48,7 +51,7 @@ class TimerFragment : Fragment() {
 
         setupNumberPickers()
         setupButtons()
-        setupPresetControls()
+        setupPresetRecyclerView()
         observeViewModel()
     }
 
@@ -67,7 +70,24 @@ class TimerFragment : Fragment() {
 
         binding.pickerHours.value = 0
         binding.pickerMinutes.value = 0
-        binding.pickerSeconds.value = 0
+        binding.pickerSeconds.value = 1
+
+        // Listener to enforce minimum 1 second
+        val listener = NumberPicker.OnValueChangeListener { _, _, _ ->
+            if (binding.pickerHours.value == 0 && binding.pickerMinutes.value == 0 && binding.pickerSeconds.value == 0) {
+                // Use postDelayed to introduce a slight delay before correcting
+                binding.pickerSeconds.postDelayed({ 
+                    // Double-check the condition still holds after the delay
+                    if (binding.pickerHours.value == 0 && binding.pickerMinutes.value == 0 && binding.pickerSeconds.value == 0) {
+                         binding.pickerSeconds.value = 1 
+                    }
+                }, 150) // Delay in milliseconds (e.g., 150ms)
+            }
+        }
+
+        binding.pickerHours.setOnValueChangedListener(listener)
+        binding.pickerMinutes.setOnValueChangedListener(listener)
+        binding.pickerSeconds.setOnValueChangedListener(listener)
     }
 
     private fun setupButtons() {
@@ -81,12 +101,13 @@ class TimerFragment : Fragment() {
                                      java.util.concurrent.TimeUnit.MINUTES.toMillis(minutes.toLong()) +
                                      java.util.concurrent.TimeUnit.SECONDS.toMillis(seconds.toLong())
 
-                if (durationMillis > 0) {
-                    viewModel.setInitialDuration(durationMillis)
-                    viewModel.startTimer()
-                } else {
-                    Toast.makeText(context, "Please set a timer duration", Toast.LENGTH_SHORT).show()
+                var finalDurationMillis = durationMillis
+                if (finalDurationMillis <= 0) {
+                    // If duration is 0, force it to 1 second
+                    finalDurationMillis = 1000L
                 }
+                viewModel.setInitialDuration(finalDurationMillis)
+                viewModel.startTimer()
             } else {
                 when (currentState) {
                     TimerState.RUNNING -> viewModel.pauseTimer()
@@ -102,9 +123,34 @@ class TimerFragment : Fragment() {
         }
     }
 
-    private fun setupPresetControls() {
-        binding.presetButtonAdd.setOnClickListener {
-            findNavController().navigate(R.id.action_timerFragment_to_addEditPresetFragment)
+    private fun setupPresetRecyclerView() {
+        presetAdapter = TimerPresetAdapter(
+            onPresetClick = { preset ->
+                if (viewModel.state.value == TimerState.IDLE) {
+                    updatePickersFromMillis(preset.durationMillis)
+                } else {
+                    Toast.makeText(context, "Stop the current timer to use a preset", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onAddClick = {
+                Log.d("TimerFragment", "Add preset button clicked")
+                try {
+                    val action = TimerFragmentDirections.actionTimerFragmentToAddEditPresetFragment(null)
+                    findNavController().navigate(action)
+                    Log.d("TimerFragment", "Navigation action triggered")
+                } catch (e: Exception) {
+                    Log.e("TimerFragment", "Navigation failed", e)
+                    Toast.makeText(context, "Error navigating. Please try again.", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onPresetLongClick = { preset ->
+                showDeleteConfirmationDialog(preset)
+            }
+        )
+
+        binding.presetsRecyclerView.apply {
+            adapter = presetAdapter
+            setHasFixedSize(true)
         }
     }
 
@@ -127,99 +173,64 @@ class TimerFragment : Fragment() {
         }
 
         viewModel.presets.observe(viewLifecycleOwner) { presets ->
-            populatePresetButtons(presets)
-            updatePresetButtonsEnabled(viewModel.state.value == TimerState.IDLE)
+            presetAdapter.submitList(presets ?: emptyList())
         }
     }
 
-    private fun populatePresetButtons(presets: List<TimerPreset>) {
-        val container = binding.dynamicPresetRowsContainer
-        container.removeAllViews()
+    private fun updateUI(state: TimerState) {
+        val isIdle = state == TimerState.IDLE
+        val isRunning = state == TimerState.RUNNING
+        val isPaused = state == TimerState.PAUSED
+        val isFinished = state == TimerState.FINISHED
 
-        val rowLayoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply {
-            bottomMargin = resources.getDimensionPixelSize(R.dimen.preset_row_margin_bottom)
-        }
+        binding.groupTimerSetup.isVisible = isIdle
+        binding.groupTimerRunning.isVisible = !isIdle
 
-        val buttonLayoutParams = LinearLayout.LayoutParams(
-            resources.getDimensionPixelSize(R.dimen.preset_button_fixed_width),
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply {
-            marginEnd = resources.getDimensionPixelSize(R.dimen.preset_button_margin_end)
-            topMargin = resources.getDimensionPixelSize(R.dimen.preset_button_margin_vertical)
-            bottomMargin = resources.getDimensionPixelSize(R.dimen.preset_button_margin_vertical)
-        }
+        // Hide presets RecyclerView if timer is not idle
+        binding.presetsRecyclerView.isVisible = isIdle
 
-        val maxButtonsPerRow = 3
-        var currentHorizontalLayout: LinearLayout? = null
+        binding.cancelButton.isVisible = !isIdle
+        binding.cancelButton.isEnabled = !isIdle
 
-        presets.forEachIndexed { index, preset ->
-            if (index % maxButtonsPerRow == 0) {
-                currentHorizontalLayout = LinearLayout(context).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    layoutParams = rowLayoutParams
-                    gravity = Gravity.CENTER_HORIZONTAL
-                }
-                container.addView(currentHorizontalLayout)
+        when (state) {
+            TimerState.IDLE -> {
+                binding.startPauseButton.text = getString(R.string.start)
+                binding.startPauseButton.isEnabled = true
+                binding.startPauseButton.setBackgroundColor(getThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
+                binding.cancelButton.isVisible = false
             }
-
-            val button = MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-                val formattedTime = formatMillisToShortTime(preset.durationMillis)
-                text = "${preset.emojiIcon}\n$formattedTime"
-                contentDescription = getString(R.string.preset_button_content_description, preset.emojiIcon, formattedTime)
-                layoutParams = buttonLayoutParams
-                minLines = 2
-                maxLines = 2
-                isSingleLine = false
-
-                setOnClickListener {
-                    if (viewModel.state.value == TimerState.IDLE) {
-                        updatePickersFromMillis(preset.durationMillis)
-                    }
-                }
-                setOnLongClickListener {
-                    showDeletePresetConfirmationDialog(preset)
-                    true
-                }
-                setPadding(0, resources.getDimensionPixelSize(R.dimen.preset_button_padding_vertical), 0, resources.getDimensionPixelSize(R.dimen.preset_button_padding_vertical))
-                textSize = resources.getDimension(R.dimen.preset_button_text_size) / resources.displayMetrics.scaledDensity
+            TimerState.RUNNING -> {
+                binding.startPauseButton.text = getString(R.string.pause)
+                binding.startPauseButton.isEnabled = true
+                binding.startPauseButton.setBackgroundColor(getThemeColor(requireContext(), com.google.android.material.R.attr.colorSecondary))
             }
-
-            if ((index + 1) % maxButtonsPerRow == 0 || index == presets.size - 1) {
-                 (button.layoutParams as LinearLayout.LayoutParams).marginEnd = 0
-            } else {
-                 (button.layoutParams as LinearLayout.LayoutParams).marginEnd = resources.getDimensionPixelSize(R.dimen.preset_button_margin_end)
+            TimerState.PAUSED -> {
+                binding.startPauseButton.text = getString(R.string.resume)
+                binding.startPauseButton.isEnabled = true
+                binding.startPauseButton.setBackgroundColor(getThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
             }
-
-            currentHorizontalLayout?.addView(button)
+            TimerState.FINISHED -> {
+                binding.startPauseButton.text = getString(R.string.reset)
+                binding.startPauseButton.isEnabled = true
+                binding.startPauseButton.setBackgroundColor(getThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
+                binding.cancelButton.isVisible = false
+                Toast.makeText(context, "Timer Finished!", Toast.LENGTH_LONG).show()
+            }
         }
-        updatePresetButtonsEnabled(viewModel.state.value == TimerState.IDLE)
     }
 
-    private fun formatMillisToShortTime(millis: Long): String {
-        if (millis <= 0) return "0s"
-        val hours = TimeUnit.MILLISECONDS.toHours(millis)
-        val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % 60
-        val seconds = TimeUnit.MILLISECONDS.toSeconds(millis) % 60
+    @ColorInt
+    fun getThemeColor(@AttrRes attrRes: Int): Int {
+        val typedValue = TypedValue()
+        requireContext().theme.resolveAttribute(attrRes, typedValue, true)
+        return typedValue.data
+    }
 
-        val builder = StringBuilder()
-        if (hours > 0) {
-            builder.append(hours).append("h")
-        }
-        if (minutes > 0) {
-            if (builder.isNotEmpty()) builder.append(" ")
-            builder.append(minutes).append("m")
-        }
-        if (seconds > 0 && hours == 0L && minutes == 0L) {
-             if (builder.isNotEmpty()) builder.append(" ")
-             builder.append(seconds).append("s")
-        } else if (builder.isEmpty()){
-             builder.append("0s")
-        }
-
-        return builder.toString()
+    @ColorInt
+    private fun getThemeColor(context: Context, @AttrRes colorAttr: Int): Int {
+        val typedValue = TypedValue()
+        context.theme.resolveAttribute(colorAttr, typedValue, true)
+        return typedValue.data
     }
 
     private fun updatePickersFromMillis(durationMillis: Long) {
@@ -231,82 +242,16 @@ class TimerFragment : Fragment() {
         binding.pickerSeconds.value = seconds
     }
 
-    private fun showDeletePresetConfirmationDialog(preset: TimerPreset) {
+    private fun showDeleteConfirmationDialog(preset: TimerPreset) {
          MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Delete Preset")
-            .setMessage("Are you sure you want to delete the preset '${preset.emojiIcon}'?")
-            .setPositiveButton("Delete") { dialog, which ->
+            .setTitle("Delete Preset '${preset.emojiIcon}'?")
+            .setMessage("Are you sure you want to delete this timer preset?")
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton("Delete") { _, _ ->
                 viewModel.deletePreset(preset.id)
+                Toast.makeText(context, "Preset deleted", Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("Cancel", null)
             .show()
-    }
-
-    private fun updateUI(state: TimerState) {
-        val isIdle = state == TimerState.IDLE
-        val isRunning = state == TimerState.RUNNING
-        val isPaused = state == TimerState.PAUSED
-        val isFinished = state == TimerState.FINISHED
-
-        binding.groupTimerSetup.isVisible = isIdle || isFinished
-        binding.groupTimerRunning.isVisible = isRunning || isPaused
-
-        binding.cancelButton.isVisible = isRunning || isPaused || isFinished
-        binding.cancelButton.isEnabled = isRunning || isPaused || isFinished
-
-        when (state) {
-            TimerState.IDLE -> {
-                binding.startPauseButton.text = getString(R.string.start)
-                binding.startPauseButton.isEnabled = true
-                binding.startPauseButton.setBackgroundColor(resolveThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
-            }
-            TimerState.RUNNING -> {
-                binding.startPauseButton.text = getString(R.string.pause)
-                binding.startPauseButton.isEnabled = true
-                binding.startPauseButton.setBackgroundColor(resolveThemeColor(requireContext(), com.google.android.material.R.attr.colorError))
-            }
-            TimerState.PAUSED -> {
-                binding.startPauseButton.text = getString(R.string.resume)
-                binding.startPauseButton.isEnabled = true
-                binding.startPauseButton.setBackgroundColor(resolveThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
-            }
-            TimerState.FINISHED -> {
-                binding.startPauseButton.text = getString(R.string.start)
-                binding.startPauseButton.isEnabled = true
-                binding.startPauseButton.setBackgroundColor(resolveThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
-                Toast.makeText(context, "Timer Finished!", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        updatePresetButtonsEnabled(isIdle)
-    }
-
-    private fun updatePresetButtonsEnabled(enabled: Boolean) {
-        binding.presetButtonAdd.isEnabled = enabled
-        val rowsContainer = binding.dynamicPresetRowsContainer
-        for (i in 0 until rowsContainer.childCount) {
-            val row = rowsContainer.getChildAt(i)
-            if (row is LinearLayout) {
-                for (j in 0 until row.childCount) {
-                    val button = row.getChildAt(j)
-                    if (button is Button) {
-                        button.isEnabled = enabled
-                    }
-                }
-                row.alpha = if (enabled) 1.0f else 0.5f
-            }
-        }
-        binding.presetButtonAdd.alpha = if (enabled) 1.0f else 0.5f
-    }
-
-    @ColorInt
-    private fun resolveThemeColor(context: Context, @AttrRes attr: Int): Int {
-        val typedValue = TypedValue()
-        val theme: Resources.Theme = context.theme
-        if (theme.resolveAttribute(attr, typedValue, true)) {
-            return typedValue.data
-        }
-        return Color.GRAY
     }
 
     override fun onDestroyView() {

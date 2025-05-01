@@ -143,36 +143,22 @@
         app:layout_constraintEnd_toEndOf="parent"
         tools:text="Ends at 10:30 PM" />
 
-    <!-- Container for Preset Buttons -->
-    <LinearLayout
-        android:id="@+id/presetContainer"
+    <!-- RecyclerView for Timer Presets -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/presetsRecyclerView"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:layout_height="0dp" 
         android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+        app:spanCount="3"
+        tools:listitem="@layout/timer_preset_item"
+        tools:itemCount="7"
         app:layout_constraintTop_toBottomOf="@id/timerDisplayAnchor"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/timerButtonContainer">
-
-        <!-- Container specifically for the dynamic preset rows -->
-        <LinearLayout
-            android:id="@+id/dynamicPresetRowsContainer" 
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-
-        <!-- Button to add a new preset (remains the last element) -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/presetButtonAdd"
-            style="?attr/materialIconButtonOutlinedStyle" 
-            android:layout_width="wrap_content" 
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal" 
-            android:layout_marginTop="8dp"
-            app:icon="@android:drawable/ic_input_add" />
-
-    </LinearLayout>
+        app:layout_constraintBottom_toTopOf="@+id/timerButtonContainer"
+        app:layout_constraintVertical_bias="0.0" /> 
 
     <!-- Start/Pause and Cancel Buttons -->
     <LinearLayout

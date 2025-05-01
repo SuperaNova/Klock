@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.fragment.navArgs
 import cit.edu.KlockApp.databinding.FragmentAddEditPresetBinding
 import java.util.concurrent.TimeUnit
 
@@ -19,6 +20,9 @@ class AddEditPresetFragment : Fragment() {
 
     // Use activityViewModels to get the shared ViewModel instance
     private val viewModel: TimerViewModel by activityViewModels()
+    private val args: AddEditPresetFragmentArgs by navArgs()
+
+    private var presetToEdit: TimerPreset? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -32,8 +36,29 @@ class AddEditPresetFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Check if we are editing an existing preset
+        args.presetId?.let { presetId ->
+            presetToEdit = viewModel.getPresetById(presetId)
+            presetToEdit?.let { preset ->
+                populateFieldsForEdit(preset)
+                // Optionally change title or button text
+                binding.buttonSavePreset.text = "Update"
+            }
+        }
+
         setupNumberPickers()
         setupButtons()
+    }
+
+    private fun populateFieldsForEdit(preset: TimerPreset) {
+        binding.etPresetEmoji.setText(preset.emojiIcon)
+        // Populate NumberPickers based on preset.durationMillis
+        val hours = TimeUnit.MILLISECONDS.toHours(preset.durationMillis).toInt()
+        val minutes = (TimeUnit.MILLISECONDS.toMinutes(preset.durationMillis) % 60).toInt()
+        val seconds = (TimeUnit.MILLISECONDS.toSeconds(preset.durationMillis) % 60).toInt()
+        binding.pickerHoursPreset.value = hours
+        binding.pickerMinutesPreset.value = minutes
+        binding.pickerSecondsPreset.value = seconds
     }
 
     private fun setupNumberPickers() {
@@ -50,10 +75,26 @@ class AddEditPresetFragment : Fragment() {
         binding.pickerMinutesPreset.setFormatter(formatter)
         binding.pickerSecondsPreset.setFormatter(formatter)
 
-        // TODO: Add logic here if editing an existing preset to populate pickers
-        binding.pickerHoursPreset.value = 0
-        binding.pickerMinutesPreset.value = 0
-        binding.pickerSecondsPreset.value = 10 // Default to 10s for new presets maybe?
+        // Listener to enforce minimum 1 second
+        val listener = NumberPicker.OnValueChangeListener { _, _, _ ->
+            if (binding.pickerHoursPreset.value == 0 && binding.pickerMinutesPreset.value == 0 && binding.pickerSecondsPreset.value == 0) {
+                binding.pickerSecondsPreset.postDelayed({ 
+                    if (binding.pickerHoursPreset.value == 0 && binding.pickerMinutesPreset.value == 0 && binding.pickerSecondsPreset.value == 0) {
+                        binding.pickerSecondsPreset.value = 1 
+                    }
+                }, 150)
+            }
+        }
+        binding.pickerHoursPreset.setOnValueChangedListener(listener)
+        binding.pickerMinutesPreset.setOnValueChangedListener(listener)
+        binding.pickerSecondsPreset.setOnValueChangedListener(listener)
+
+        // Default values only apply if not editing
+        if (presetToEdit == null) {
+             binding.pickerHoursPreset.value = 0
+             binding.pickerMinutesPreset.value = 0
+             binding.pickerSecondsPreset.value = 1 // Default to 1 second
+        }
     }
 
     private fun setupButtons() {
@@ -67,36 +108,27 @@ class AddEditPresetFragment : Fragment() {
     }
 
     private fun savePresetAndReturn() {
-        val name = binding.etPresetName.text.toString().trim()
+        val emoji = binding.etPresetEmoji.text.toString().trim()
         val hours = binding.pickerHoursPreset.value
         val minutes = binding.pickerMinutesPreset.value
         val seconds = binding.pickerSecondsPreset.value
-
-        // Basic Validation
-        if (name.isEmpty()) {
-            binding.tilPresetName.error = "Preset name cannot be empty"
-            return
-        } else {
-            binding.tilPresetName.error = null // Clear error if name is now valid
-        }
 
         val durationMillis = TimeUnit.HOURS.toMillis(hours.toLong()) +
                              TimeUnit.MINUTES.toMillis(minutes.toLong()) +
                              TimeUnit.SECONDS.toMillis(seconds.toLong())
 
-        if (durationMillis <= 0) {
-            Toast.makeText(context, "Preset duration must be greater than 0 seconds", Toast.LENGTH_SHORT).show()
-            return
+        var finalDurationMillis = durationMillis
+        if (finalDurationMillis <= 0) {
+            finalDurationMillis = 1000L // Force minimum 1 second
         }
 
-        // TODO: Add logic to check for duplicate names if required by ViewModel/UI
-        // val presetExists = viewModel.presets.value?.any { it.name.equals(name, ignoreCase = true) } ?: false
-        // if (presetExists) { ... handle error ... }
+        // Call ViewModel to add or update the preset with potentially adjusted duration
+        if (presetToEdit != null) {
+            viewModel.updatePreset(presetToEdit!!.id, emoji, finalDurationMillis)
+        } else {
+            viewModel.addPreset(emoji, finalDurationMillis)
+        }
 
-        // Call ViewModel to add the preset
-        viewModel.addPreset(name, durationMillis)
-
-        // Navigate back
         findNavController().navigateUp()
     }
 

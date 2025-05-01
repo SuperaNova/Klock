@@ -12,7 +12,6 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
-import cit.edu.KlockApp.util.Event
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -57,10 +56,6 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     // Optional: LiveData for formatted end time
     private val _endTimeFormatted = MutableLiveData<String?>()
     val endTimeFormatted: LiveData<String?> = _endTimeFormatted
-
-    // Optional: LiveData for showing duplicate preset error
-    private val _showDuplicatePresetError = MutableLiveData<Event<Unit>>()
-    val showDuplicatePresetError: LiveData<Event<Unit>> = _showDuplicatePresetError
 
     init {
         setInitialDuration(0L) // Start with 0 duration initially
@@ -177,27 +172,28 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
                 val loadedPresets = mutableListOf<TimerPreset>()
                 for (i in 0 until jsonArray.length()) {
                     val jsonObject = jsonArray.getJSONObject(i)
-                    // Ensure backward compatibility or handle cases where "name" might still exist
-                    val identifier = if (jsonObject.has("emojiIcon")) {
-                        jsonObject.getString("emojiIcon")
-                    } else {
-                        // Handle potential old format or provide a default/fallback
-                        jsonObject.optString("name", "?") // Fallback to "?" if neither exists
-                    }
-                    if (identifier.isNotBlank()) { // Only add if we have a valid identifier
-                        loadedPresets.add(
-                            TimerPreset(
-                                id = jsonObject.optString("id", UUID.randomUUID().toString()),
-                                emojiIcon = identifier, // Use the determined identifier
-                                durationMillis = jsonObject.getLong("durationMillis")
-                            )
+                    // Directly read emojiIcon, default to empty string if missing
+                    val emoji = jsonObject.optString("emojiIcon", "")
+                    val id = jsonObject.optString("id", UUID.randomUUID().toString())
+                    val duration = jsonObject.getLong("durationMillis")
+
+                    Log.d("TimerViewModel", "Loading preset - ID: $id, Emoji: '$emoji', Duration: $duration") // Log loaded values
+
+                    // Add the preset regardless of whether emoji is blank
+                    loadedPresets.add(
+                        TimerPreset(
+                            id = id,
+                            emojiIcon = emoji,
+                            durationMillis = duration
                         )
-                    }
+                    )
                 }
-                // Sort by emojiIcon string value
+                // Sort by emojiIcon string value (blank emojis might group together)
                 _presets.value = loadedPresets.sortedBy { it.emojiIcon }
+                Log.d("TimerViewModel", "Loaded presets count: ${loadedPresets.size}") // Log final count
+                Log.d("TimerViewModel", "Loaded presets list: $loadedPresets") // Log the full list
             } catch (e: Exception) {
-                // Log the error e.g., Log.e("TimerViewModel", "Error loading presets", e)
+                Log.e("TimerViewModel", "Error loading presets", e)
                 _presets.value = emptyList()
                 savePresetsInternal(emptyList()) // Clear potentially corrupted data
             }
@@ -218,48 +214,70 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
             }
             prefs.edit().putString("timer_presets_json", jsonArray.toString()).apply()
         } catch (e: Exception) {
-            // Log error or notify user
+            Log.e("TimerViewModel", "Error saving presets", e)
         }
     }
 
     // Function to add a new preset
     fun addPreset(emojiIcon: String, durationMillis: Long) {
+        Log.d("TimerViewModel", "addPreset called. Emoji: '$emojiIcon', Duration: $durationMillis") // Log input
         // Basic validation: Ensure emojiIcon is not empty and duration is positive
-        if (emojiIcon.isBlank() || durationMillis <= 0) {
-            // Handle invalid input (e.g., show error Toast or log)
-            // Consider adding more robust emoji validation if needed (e.g., check length or character properties)
-            Log.w("TimerViewModel", "Invalid input for addPreset: emojiIcon='$emojiIcon', durationMillis=$durationMillis")
+        if (durationMillis <= 0) {
+            Log.w("TimerViewModel", "Invalid input for addPreset: Duration <= 0")
             return
         }
 
         val currentList = _presets.value.orEmpty()
-        // Check for duplicates based on emojiIcon (case-insensitive for simplicity, adjust if needed)
-        if (currentList.any { it.emojiIcon.equals(emojiIcon, ignoreCase = true) }) {
-            // Handle duplicate emoji icon (e.g., show error Toast)
-            Log.w("TimerViewModel", "Duplicate preset emoji attempted: $emojiIcon")
-            _showDuplicatePresetError.value = Event(Unit) // Trigger event for UI
-            return
-        }
-
         val newPreset = TimerPreset(emojiIcon = emojiIcon, durationMillis = durationMillis)
+        Log.d("TimerViewModel", "Saving new preset: ID=${newPreset.id}, Emoji='${newPreset.emojiIcon}'") // Log preset being added
         // Sort by emojiIcon string value
         val updatedList = (currentList + newPreset).sortedBy { it.emojiIcon }
         _presets.value = updatedList
         savePresetsInternal(updatedList)
     }
 
-    // Function to delete a preset by its ID
-    fun deletePreset(presetId: String) {
+    // Function to delete a preset
+    fun deletePreset(id: String) {
         val currentList = _presets.value.orEmpty()
-        val updatedList = currentList.filterNot { it.id == presetId }
-        if (currentList.size != updatedList.size) {
-            _presets.value = updatedList
-            savePresetsInternal(updatedList)
+        val updatedList = currentList.filterNot { it.id == id }
+        // No need to re-sort after deletion unless order is critical beyond add/update sorting
+        _presets.value = updatedList
+        savePresetsInternal(updatedList)
+    }
+
+    // Function to get a preset by ID (needed for editing)
+    fun getPresetById(id: String): TimerPreset? {
+        return _presets.value?.firstOrNull { it.id == id }
+    }
+
+    // Function to update an existing preset
+    fun updatePreset(id: String, newEmojiIcon: String, newDurationMillis: Long) {
+         Log.d("TimerViewModel", "updatePreset called. ID: $id, New Emoji: '$newEmojiIcon', New Duration: $newDurationMillis") // Log input
+         // Basic validation
+         if (newDurationMillis <= 0) {
+            Log.w("TimerViewModel", "Invalid input for updatePreset: Duration <= 0")
+            return
+        }
+
+        val currentList = _presets.value.orEmpty().toMutableList()
+        val index = currentList.indexOfFirst { it.id == id }
+
+        if (index != -1) {
+            val updatedPreset = TimerPreset(id = id, emojiIcon = newEmojiIcon, durationMillis = newDurationMillis)
+            Log.d("TimerViewModel", "Updating preset: ID=${updatedPreset.id}, Emoji='${updatedPreset.emojiIcon}'") // Log preset being updated
+            currentList[index] = updatedPreset
+            // Sort by emojiIcon string value
+            val updatedSortedList = currentList.sortedBy { it.emojiIcon }
+            _presets.value = updatedSortedList
+            savePresetsInternal(updatedSortedList)
+        } else {
+            Log.w("TimerViewModel", "Preset with ID $id not found for update.")
+            // Optionally handle error (e.g., show message)
         }
     }
 
     override fun onCleared() {
         super.onCleared()
-        countDownTimer?.cancel() // Clean up the timer
+        countDownTimer?.cancel() // Clean up timer
     }
 }

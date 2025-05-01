@@ -70,6 +70,9 @@
     <string name="menu_setting">Settings</string>
     <string name="menu_add">Add</string>
 
+    <!-- General -->
+    <string name="add_timer_preset">Add timer preset</string>
+
     <string name="delete_world_clock">Delete world clock</string>
 
     <!-- World Clock -->
