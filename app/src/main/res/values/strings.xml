@@ -70,4 +70,17 @@
     <string name="menu_setting">Settings</string>
     <string name="menu_add">Add</string>
 
+    <string name="delete_world_clock">Delete world clock</string>
+
+    <!-- World Clock -->
+    <string name="world_clock_desc">Add world clock</string>
+
+    <string name="start">Start</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="lap">Lap</string>
+    <string name="reset">Reset</string>
+
+    <string name="cancel">Cancel</string>
+
 </resources>

@@ -6,18 +6,17 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.lifecycle.ViewModelProvider
 import cit.edu.KlockApp.databinding.FragmentAddclockListBinding
-
-// TODO: Customize parameter argument names
-const val ARG_ITEM_COUNT = "item_count"
+import java.util.TimeZone
 
 /**
- *
- * A fragment that shows a list of items as a modal bottom sheet.
+ * A fragment that shows a list of timezones as a modal bottom sheet.
  *
  * You can show this modal bottom sheet from your activity like this:
  * <pre>
- *    AddNewWorldClock.newInstance(30).show(supportFragmentManager, "dialog")
+ *    AddNewWorldClock().show(supportFragmentManager, "dialog")
  * </pre>
  */
 class AddNewWorldClock : BottomSheetDialogFragment() {
@@ -35,7 +34,35 @@ class AddNewWorldClock : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.list.layoutManager = LinearLayoutManager(context)
-        binding.list.adapter = TimeZoneAdapter(4) // Adjust item count as needed
+        
+        // Get all timezone IDs and format them for display
+        val timeZones = TimeZone.getAvailableIDs()
+            .map { it.replace("_", " ") }
+            .sorted()
+            
+        // Create adapter with the timezone list and a click handler
+        val adapter = TimeZoneAdapter(timeZones) { selectedTimeZone ->
+            // Find the parent WorldClockFragment to add the timezone
+            val fragmentManager = parentFragmentManager
+            val worldClockFragment = fragmentManager.findFragmentByTag("WorldClockFragment") as? WorldClockFragment
+                ?: fragmentManager.primaryNavigationFragment?.childFragmentManager?.primaryNavigationFragment as? WorldClockFragment
+                
+            if (worldClockFragment != null) {
+                // Add the world clock using the fragment's ViewModel (using the correct name 'viewModel')
+                worldClockFragment.viewModel.addWorldClock(selectedTimeZone.replace(" ", "_"))
+                Toast.makeText(context, "Added $selectedTimeZone", Toast.LENGTH_SHORT).show()
+            } else {
+                // Fallback: Create a new ViewModel instance scoped to the activity
+                val activityViewModel = ViewModelProvider(requireActivity())[WorldClockViewModel::class.java]
+                activityViewModel.addWorldClock(selectedTimeZone.replace(" ", "_"))
+                Toast.makeText(context, "Added $selectedTimeZone (Activity Scope)", Toast.LENGTH_SHORT).show()
+            }
+            
+            // Dismiss the dialog
+            dismiss()
+        }
+        
+        binding.list.adapter = adapter
     }
 
     override fun onDestroyView() {
