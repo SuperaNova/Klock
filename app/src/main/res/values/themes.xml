@@ -21,4 +21,13 @@
         <item name="android:fontFamily">sans-serif</item>
     </style>
 
+    <style name="CustomSpinnerTimePickerTheme" parent="ThemeOverlay.MaterialComponents.Light">
+        <!-- Force the widget to use spinner style -->
+        <item name="android:timePickerStyle">@style/SpinnerTimePickerStyle</item>
+    </style>
+
+    <style name="SpinnerTimePickerStyle" parent="@android:style/Widget.Material.TimePicker">
+        <item name="android:timePickerMode">spinner</item>
+    </style>
+
 </resources>

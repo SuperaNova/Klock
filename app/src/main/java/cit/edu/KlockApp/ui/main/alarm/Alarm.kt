@@ -1,10 +1,18 @@
 package cit.edu.KlockApp.ui.main.alarm
 
-import java.sql.Date
-import java.sql.Time
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
+import java.time.LocalTime
 
+@Parcelize
+@Serializable
 data class Alarm(
-    var time: Time,
-    var isEnabled: Boolean,
-    var date: Date
-)
+    val id: Int,
+    val label: String,
+    @Contextual
+    val time: LocalTime,
+    val repeatDays: List<String>,
+    var isEnabled: Boolean
+) : Parcelable
