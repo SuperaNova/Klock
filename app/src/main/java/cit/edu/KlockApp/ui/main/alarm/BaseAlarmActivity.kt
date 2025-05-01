@@ -20,34 +20,27 @@ import android.widget.TimePicker
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import cit.edu.KlockApp.R
+import cit.edu.KlockApp.databinding.ActivityEditAlarmBinding
 import java.util.Calendar
 
 abstract class BaseAlarmActivity : AppCompatActivity() {
 
-    protected lateinit var timePicker: TimePicker
-    private lateinit var repeatButton: Button
-    private lateinit var alarmSoundButton: Button
-    protected lateinit var labelEditText: EditText
-    private lateinit var snoozeSpinner: Spinner
-    private lateinit var vibrateSwitch: Switch
-    private lateinit var ivClose: ImageView
-    private lateinit var ivCheck: ImageView
-    protected lateinit var tvTitle: TextView
+    protected lateinit var binding: ActivityEditAlarmBinding
+
     protected lateinit var alarm: Alarm
     protected var selectedDays = mutableListOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_edit_alarm)
+        binding = ActivityEditAlarmBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        // Common UI setup
-        initializeViews()
         setupSnoozeSpinner()
         setupRepeatDialog()
 
-        ivClose.setOnClickListener { finish() }
+        binding.ivClose.setOnClickListener { finish() }
 
-        ivCheck.setOnClickListener {
+        binding.ivCheck.setOnClickListener {
             updateAlarmFromUI()
             if (!alarm.isEnabled) {
                 cancelAlarm()
@@ -72,25 +65,13 @@ abstract class BaseAlarmActivity : AppCompatActivity() {
 
     abstract fun returnWithResult()
 
-    private fun initializeViews() {
-        ivClose = findViewById(R.id.ivClose)
-        ivCheck = findViewById(R.id.ivCheck)
-        tvTitle = findViewById(R.id.tvTitle)
-        labelEditText = findViewById(R.id.labelEditText)
-        timePicker = findViewById(R.id.timePicker)
-        repeatButton = findViewById(R.id.repeatButton)
-        alarmSoundButton = findViewById(R.id.alarmSoundButton)
-        snoozeSpinner = findViewById(R.id.snoozeSpinner)
-        vibrateSwitch = findViewById(R.id.vibrateSwitch)
-    }
-
     private fun setupSnoozeSpinner() {
         val options = arrayOf("5 minutes", "10 minutes", "15 minutes")
-        snoozeSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, options)
+        binding.snoozeSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, options)
     }
 
     private fun setupRepeatDialog() {
-        repeatButton.setOnClickListener {
+        binding.repeatButton.setOnClickListener {
             val days = arrayOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
             val checked = BooleanArray(days.size) { selectedDays.contains(days[it]) }
             AlertDialog.Builder(this)
@@ -98,7 +79,7 @@ abstract class BaseAlarmActivity : AppCompatActivity() {
                 .setMultiChoiceItems(days, checked) { _, which, isChecked ->
                     if (isChecked) selectedDays.add(days[which]) else selectedDays.remove(days[which])
                 }
-                .setPositiveButton("Done") { _, _ -> repeatButton.text = formatSelectedDays(selectedDays) }
+                .setPositiveButton("Done") { _, _ -> binding.repeatButton.text = formatSelectedDays(selectedDays) }
                 .setNegativeButton("Cancel", null)
                 .show()
         }
@@ -125,13 +106,13 @@ abstract class BaseAlarmActivity : AppCompatActivity() {
         )
 
         alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pi)
-        Toast.makeText(this, "Alarm set for ${timePicker.hour.toString().padStart(2, '0')}:${timePicker.minute.toString().padStart(2, '0')}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Alarm set for ${binding.timePicker.hour.toString().padStart(2, '0')}:${binding.timePicker.minute.toString().padStart(2, '0')}", Toast.LENGTH_SHORT).show()
     }
 
     private fun calculateNextTriggerTime(): Long? {
         val triggerCal = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, timePicker.hour)
-            set(Calendar.MINUTE, timePicker.minute)
+            set(Calendar.HOUR_OF_DAY, binding.timePicker.hour)
+            set(Calendar.MINUTE, binding.timePicker.minute)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
@@ -151,8 +132,8 @@ abstract class BaseAlarmActivity : AppCompatActivity() {
             if (selectedDays.contains(orderedDays[dayToCheck])) {
                 val checkCal = Calendar.getInstance().apply {
                     add(Calendar.DAY_OF_YEAR, i)
-                    set(Calendar.HOUR_OF_DAY, timePicker.hour)
-                    set(Calendar.MINUTE, timePicker.minute)
+                    set(Calendar.HOUR_OF_DAY, binding.timePicker.hour)
+                    set(Calendar.MINUTE, binding.timePicker.minute)
                     set(Calendar.SECOND, 0)
                     set(Calendar.MILLISECOND, 0)
                 }
@@ -174,7 +155,7 @@ abstract class BaseAlarmActivity : AppCompatActivity() {
         alarmManager.cancel(pi)
     }
 
-    private fun formatSelectedDays(days: List<String>): String {
+    protected fun formatSelectedDays(days: List<String>): String {
         if (days.isEmpty()) return "Once"
         if (days.size == 7) return "Everyday"
 

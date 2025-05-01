@@ -75,7 +75,8 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
             time = time,
             isEnabled = true,
             repeatDays = emptyList(),
-            label = "Wake Up"
+            label = "Wake Up",
+            vibrate = true
         )
     }
 

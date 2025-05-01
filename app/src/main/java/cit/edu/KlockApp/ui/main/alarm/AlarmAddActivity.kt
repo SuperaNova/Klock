@@ -8,31 +8,39 @@ import java.time.LocalTime
 class AlarmAddActivity : BaseAlarmActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        tvTitle.text = "Create Alarm"
+        // Access views via binding
+        binding.tvTitle.text = "Create Alarm"
 
         // Load or create default alarm
-        alarm = intent.getSerializableExtra("ALARM_DATA") as? Alarm ?: Alarm(
-            id = 1,
-            label = "New Alarm",
-            time = LocalTime.of(9, 0),
+        // Ensure default alarm has a unique ID. Relying on subclasses/ViewModel to manage IDs.
+        alarm = intent.getParcelableExtra<Alarm>("ALARM_DATA") ?: Alarm(
+            id = System.currentTimeMillis().toInt(), // Use timestamp for potentially unique ID
+            label = "Alarm", // Changed default label slightly
+            time = LocalTime.now(), // Default to current time
             repeatDays = emptyList(),
+            vibrate = true,
             isEnabled = true,
         )
 
-        // Set the default label in the UI
-        labelEditText.setText(alarm.label)  // ← This ensures "New Alarm" shows up
+        // Set the default values in the UI using binding
+        binding.labelEditText.setText(alarm.label)
+        binding.timePicker.hour = alarm.time.hour
+        binding.timePicker.minute = alarm.time.minute
+        binding.vibrateSwitch.isChecked = alarm.vibrate
+        selectedDays = alarm.repeatDays.toMutableList() // Initialize selectedDays from potentially passed alarm
 
-        timePicker.hour = alarm.time.hour
-        timePicker.minute = alarm.time.minute
-
-        selectedDays = alarm.repeatDays.toMutableList()
+        // Update repeat button text initially
+        binding.repeatButton.text = formatSelectedDays(selectedDays)
     }
 
     override fun updateAlarmFromUI() {
         alarm = alarm.copy(
-            time = LocalTime.of(timePicker.hour, timePicker.minute),
-            label = labelEditText.text.toString(),
-            repeatDays = selectedDays.toList()
+            // Access views via binding
+            time = LocalTime.of(binding.timePicker.hour, binding.timePicker.minute),
+            label = binding.labelEditText.text.toString().ifBlank { "Alarm" }, // Use default if blank
+            repeatDays = selectedDays.toList(),
+            vibrate = binding.vibrateSwitch.isChecked,
+            isEnabled = true // New alarms are always enabled when created
         )
     }
 
@@ -43,6 +51,7 @@ class AlarmAddActivity : BaseAlarmActivity() {
     }
 
     override fun handleFinalization() {
+        // This assumes AlarmViewModel handles ID assignment if needed, or the timestamp ID is sufficient
         val alarmViewModel = ViewModelProvider(this).get(AlarmViewModel::class.java)
         alarmViewModel.addAlarm(alarm)
         returnWithResult()
