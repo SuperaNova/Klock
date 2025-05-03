@@ -94,10 +94,16 @@ class KlockActivity : AppCompatActivity() {
                 val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
 
                 when (currentFragment) {
-                    is WorldClockFragment -> currentFragment.showTimeZoneSelectionDialog()
-                    is AlarmFragment -> currentFragment.launchAddAlarm()
+                    is WorldClockFragment -> {
+                        currentFragment.showTimeZoneSelector()
+                        true
+                    }
+                    is AlarmFragment -> {
+                        currentFragment.launchAddAlarm()
+                        true
+                    }
+                    else -> super.onOptionsItemSelected(item)
                 }
-                true
             }
             else -> super.onOptionsItemSelected(item)
         }

@@ -88,9 +88,14 @@
     <string name="add_preset">Add Preset</string>
 
     <!-- Preset button description -->
-    <string name="preset_button_content_description">Preset button: %1$s, Duration: %2$s</string>
+    <string name="preset_button_content_description">Preset Timer: %1$s</string>
 
     <!-- Timer end time display format -->
     <string name="timer_ends_at">Ends at %1$s</string>
+
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="save">Save</string>
+    <string name="search_timezone">Search timezone</string>
 
 </resources>

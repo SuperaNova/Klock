@@ -11,7 +11,7 @@ class TimeZoneAdapter(
     private val onItemClick: (String) -> Unit
 ) : RecyclerView.Adapter<TimeZoneAdapter.ViewHolder>() {
 
-    private var filteredTimeZones: List<TimeZoneDisplay> = allTimeZones
+    internal var filteredTimeZones: List<TimeZoneDisplay> = allTimeZones
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ListItemTimezoneBinding.inflate(
