@@ -82,9 +82,22 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
     }
 
     fun showTimeZoneSelectionDialog() {
-        val timeZones = TimeZone.getAvailableIDs()
-            .map { it.replace("_", " ") }
-            .sorted()
+        // 1. Get original IDs
+        val timeZoneIds = TimeZone.getAvailableIDs()
+
+        // 2. Create TimeZoneDisplay objects and format names
+        val timeZoneDisplayList = timeZoneIds.mapNotNull { id ->
+            // Simple formatting: Take part after last '/' and replace '_' with space
+            // More robust formatting might involve checking for edge cases or using libraries
+            val nameParts = id.split('/')
+            if (nameParts.size > 1) { // Ensure there's a '/' to split by
+                val displayName = nameParts.last().replace('_', ' ')
+                TimeZoneDisplay(id = id, displayName = displayName)
+            } else {
+                // Handle cases without '/' (e.g., "UTC", "GMT") - use the ID itself
+                TimeZoneDisplay(id = id, displayName = id)
+            }
+        }.sortedBy { it.displayName } // 3. Sort by display name
 
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_timezone_search, null)
         val searchView = dialogView.findViewById<SearchView>(R.id.searchView)
@@ -96,8 +109,10 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
             .setNegativeButton(android.R.string.cancel, null)
             .create()
 
-        val timezoneAdapter = TimeZoneAdapter(timeZones) { selectedTimeZone ->
-            viewModel.addWorldClock(selectedTimeZone.replace(" ", "_"))
+        // 4. Pass the List<TimeZoneDisplay> to the adapter
+        val timezoneAdapter = TimeZoneAdapter(timeZoneDisplayList) { selectedTimeZoneId ->
+            // Callback still receives the original ID
+            viewModel.addWorldClock(selectedTimeZoneId)
             dialog.dismiss()
         }
 
@@ -108,6 +123,7 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
             override fun onQueryTextSubmit(query: String?): Boolean = false
 
             override fun onQueryTextChange(newText: String?): Boolean {
+                // 5. Adapter's filter method now works on TimeZoneDisplay list
                 timezoneAdapter.filter(newText ?: "")
                 return true
             }

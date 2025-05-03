@@ -35,30 +35,40 @@ class AddNewWorldClock : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.list.layoutManager = LinearLayoutManager(context)
         
-        // Get all timezone IDs and format them for display
-        val timeZones = TimeZone.getAvailableIDs()
-            .map { it.replace("_", " ") }
-            .sorted()
-            
-        // Create adapter with the timezone list and a click handler
-        val adapter = TimeZoneAdapter(timeZones) { selectedTimeZone ->
-            // Find the parent WorldClockFragment to add the timezone
-            val fragmentManager = parentFragmentManager
-            val worldClockFragment = fragmentManager.findFragmentByTag("WorldClockFragment") as? WorldClockFragment
-                ?: fragmentManager.primaryNavigationFragment?.childFragmentManager?.primaryNavigationFragment as? WorldClockFragment
-                
-            if (worldClockFragment != null) {
-                // Add the world clock using the fragment's ViewModel (using the correct name 'viewModel')
-                worldClockFragment.viewModel.addWorldClock(selectedTimeZone.replace(" ", "_"))
-                Toast.makeText(context, "Added $selectedTimeZone", Toast.LENGTH_SHORT).show()
+        // 1. Get original IDs
+        val timeZoneIds = TimeZone.getAvailableIDs()
+
+        // 2. Create TimeZoneDisplay objects and format names
+        val timeZoneDisplayList = timeZoneIds.mapNotNull { id ->
+            val nameParts = id.split('/')
+            if (nameParts.size > 1) {
+                val displayName = nameParts.last().replace('_', ' ')
+                TimeZoneDisplay(id = id, displayName = displayName)
             } else {
-                // Fallback: Create a new ViewModel instance scoped to the activity
+                TimeZoneDisplay(id = id, displayName = id)
+            }
+        }.sortedBy { it.displayName } // 3. Sort by display name
+            
+        // 4. Create adapter with List<TimeZoneDisplay>
+        val adapter = TimeZoneAdapter(timeZoneDisplayList) { selectedTimeZoneId ->
+            val fragmentManager = parentFragmentManager
+            // Simplify fragment lookup (assuming standard NavHost usage)
+            val navHostFragment = fragmentManager.primaryNavigationFragment 
+            val worldClockFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment as? WorldClockFragment
+                
+            val displayName = timeZoneDisplayList.firstOrNull { it.id == selectedTimeZoneId }?.displayName ?: selectedTimeZoneId
+            
+            if (worldClockFragment != null) {
+                // Pass the original ID
+                worldClockFragment.viewModel.addWorldClock(selectedTimeZoneId)
+                Toast.makeText(context, "Added $displayName", Toast.LENGTH_SHORT).show()
+            } else {
+                // Fallback might not be ideal, consider communication via ViewModel/shared state
                 val activityViewModel = ViewModelProvider(requireActivity())[WorldClockViewModel::class.java]
-                activityViewModel.addWorldClock(selectedTimeZone.replace(" ", "_"))
-                Toast.makeText(context, "Added $selectedTimeZone (Activity Scope)", Toast.LENGTH_SHORT).show()
+                activityViewModel.addWorldClock(selectedTimeZoneId)
+                Toast.makeText(context, "Added $displayName (Activity Scope)", Toast.LENGTH_SHORT).show()
             }
             
-            // Dismiss the dialog
             dismiss()
         }
         

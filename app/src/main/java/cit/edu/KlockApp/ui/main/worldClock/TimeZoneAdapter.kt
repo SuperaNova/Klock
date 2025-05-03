@@ -1,28 +1,30 @@
 package cit.edu.KlockApp.ui.main.worldClock
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import cit.edu.KlockApp.databinding.ListItemTimezoneBinding
 import java.util.Locale
 
 class TimeZoneAdapter(
-    private val allTimeZones: List<String>,
+    private val allTimeZones: List<TimeZoneDisplay>,
     private val onItemClick: (String) -> Unit
 ) : RecyclerView.Adapter<TimeZoneAdapter.ViewHolder>() {
 
-    private var filteredTimeZones: List<String> = allTimeZones
+    private var filteredTimeZones: List<TimeZoneDisplay> = allTimeZones
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(android.R.layout.simple_list_item_1, parent, false)
-        return ViewHolder(view)
+        val binding = ListItemTimezoneBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false
+        )
+        return ViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val timeZone = filteredTimeZones[position]
-        holder.bind(timeZone, onItemClick)
+        val timeZoneDisplay = filteredTimeZones[position]
+        holder.bind(timeZoneDisplay, onItemClick)
     }
 
     override fun getItemCount(): Int = filteredTimeZones.size
@@ -33,19 +35,16 @@ class TimeZoneAdapter(
         } else {
             val lowerCaseQuery = query.lowercase(Locale.getDefault())
             allTimeZones.filter {
-                it.lowercase(Locale.getDefault()).contains(lowerCaseQuery)
+                it.displayName.lowercase(Locale.getDefault()).contains(lowerCaseQuery)
             }
         }
-        // Consider DiffUtil for better performance with large lists
         notifyDataSetChanged()
-        }
+    }
 
-    class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val textView: TextView = itemView.findViewById(android.R.id.text1)
-
-        fun bind(timeZone: String, onItemClick: (String) -> Unit) {
-            textView.text = timeZone
-            itemView.setOnClickListener { onItemClick(timeZone) }
+    class ViewHolder(private val binding: ListItemTimezoneBinding) : RecyclerView.ViewHolder(binding.root) {
+        fun bind(timeZoneDisplay: TimeZoneDisplay, onItemClick: (String) -> Unit) {
+            binding.timezoneName.text = timeZoneDisplay.displayName
+            itemView.setOnClickListener { onItemClick(timeZoneDisplay.id) }
         }
     }
 }
