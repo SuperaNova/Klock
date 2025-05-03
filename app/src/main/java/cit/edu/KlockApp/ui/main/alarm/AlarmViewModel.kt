@@ -3,7 +3,9 @@ package cit.edu.KlockApp.ui.main.alarm
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -32,6 +34,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
     }
     val alarms: LiveData<List<Alarm>> = _alarms
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun loadAlarms(): List<Alarm> {
         val defaultAlarm = createDefaultAlarm()
         val stored = prefs.getString(ALARMS_KEY, null)
@@ -67,6 +70,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun createDefaultAlarm(): Alarm {
         val formatter = DateTimeFormatter.ofPattern("hh:mm a", Locale.getDefault())
         val time = LocalTime.parse("07:00 AM", formatter)

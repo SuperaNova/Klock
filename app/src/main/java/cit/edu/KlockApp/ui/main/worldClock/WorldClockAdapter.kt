@@ -1,7 +1,9 @@
 package cit.edu.KlockApp.ui.main.worldClock
 
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -42,7 +44,7 @@ class WorldClockAdapter : ListAdapter<WorldClockItem, WorldClockAdapter.ViewHold
             parent,
             false
         )
-        return ViewHolder(binding, expandedItems) { position -> notifyItemChanged(position) }
+        return ViewHolder(binding, expandedItems, parent.context) { position -> notifyItemChanged(position) }
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -54,6 +56,7 @@ class WorldClockAdapter : ListAdapter<WorldClockItem, WorldClockAdapter.ViewHold
         if (payloads.contains(PAYLOAD_TIME_UPDATE)) {
             holder.updateTime(getItem(position))
         } else {
+            holder.updateFormat()
             holder.bind(getItem(position))
         }
     }
@@ -61,12 +64,27 @@ class WorldClockAdapter : ListAdapter<WorldClockItem, WorldClockAdapter.ViewHold
     class ViewHolder(
         private val binding: FragmentWorldclockItemBinding,
         private val expandedItems: MutableSet<String>,
+        private val context: Context,
         private val notifyChanged: (Int) -> Unit 
     ) : RecyclerView.ViewHolder(binding.root) {
         
         private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
         private val calendar = Calendar.getInstance()
-        
+        private var is24HourFormat: Boolean = false
+
+        init {
+            updateFormat()
+        }
+
+        fun updateFormat() {
+            val currentSetting = DateFormat.is24HourFormat(context)
+            if (currentSetting != is24HourFormat) {
+                is24HourFormat = currentSetting
+                val pattern = if (is24HourFormat) "HH:mm" else "h:mm a"
+                timeFormat.applyPattern(pattern)
+            }
+        }
+
         fun bind(item: WorldClockItem) {
             binding.itemAnalogClock.setTimeZone(item.timeZoneId)
             binding.cityName.text = formatCityName(item.timeZoneId)
@@ -84,7 +102,7 @@ class WorldClockAdapter : ListAdapter<WorldClockItem, WorldClockAdapter.ViewHold
             } else {
                 expandedItems.add(item.timeZoneId)
             }
-            notifyChanged(bindingAdapterPosition) // Use bindingAdapterPosition for safety
+            notifyChanged(bindingAdapterPosition)
         }
 
         private fun updateExpansionState(item: WorldClockItem) {
@@ -93,6 +111,8 @@ class WorldClockAdapter : ListAdapter<WorldClockItem, WorldClockAdapter.ViewHold
         }
         
         fun updateTime(item: WorldClockItem) {
+            updateFormat()
+            
             val timeZone = TimeZone.getTimeZone(item.timeZoneId)
             timeFormat.timeZone = timeZone
             calendar.timeZone = timeZone

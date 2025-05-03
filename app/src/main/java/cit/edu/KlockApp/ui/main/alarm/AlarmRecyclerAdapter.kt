@@ -196,7 +196,7 @@ class AlarmRecyclerAdapter(
              updateExpansionState(alarm, true) // Animate the change
              // Consider notifying only this item if animation is smooth
              // notifyItemChanged(position) // May cause flicker with animations
-         }
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
