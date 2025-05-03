@@ -28,14 +28,22 @@ import android.view.Gravity
 import java.lang.StringBuilder
 import androidx.recyclerview.widget.GridLayoutManager
 import android.util.Log
+import android.text.format.DateFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import androidx.recyclerview.widget.ItemTouchHelper
+import cit.edu.KlockApp.ui.util.OnItemMoveListener
+import cit.edu.KlockApp.ui.util.SimpleItemTouchHelperCallback
 
-class TimerFragment : Fragment() {
+class TimerFragment : Fragment(), OnItemMoveListener {
 
     private var _binding: FragmentTimerBinding? = null
     private val binding get() = _binding!!
 
     private val viewModel: TimerViewModel by activityViewModels()
     private lateinit var presetAdapter: TimerPresetAdapter
+    private var presetItemTouchHelper: ItemTouchHelper? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -152,6 +160,11 @@ class TimerFragment : Fragment() {
             adapter = presetAdapter
             setHasFixedSize(true)
         }
+
+        // Setup ItemTouchHelper for presets
+        val callback = SimpleItemTouchHelperCallback(this)
+        presetItemTouchHelper = ItemTouchHelper(callback)
+        presetItemTouchHelper?.attachToRecyclerView(binding.presetsRecyclerView)
     }
 
     private fun observeViewModel() {
@@ -167,9 +180,20 @@ class TimerFragment : Fragment() {
             updateUI(state)
         }
 
-        viewModel.endTimeFormatted.observe(viewLifecycleOwner) { endTime ->
-            binding.timerEndTimeText.text = endTime
-            binding.timerEndTimeText.isVisible = endTime != null
+        viewModel.endTimeMillis.observe(viewLifecycleOwner) { endTimeMillis ->
+            if (endTimeMillis != null) {
+                val context = requireContext()
+                val is24Hour = DateFormat.is24HourFormat(context)
+                val pattern = if (is24Hour) "HH:mm" else "h:mm a"
+                val sdf = SimpleDateFormat(pattern, Locale.getDefault())
+                
+                val formattedEndTime = sdf.format(Date(endTimeMillis))
+                binding.timerEndTimeText.text = getString(R.string.timer_ends_at, formattedEndTime)
+                binding.timerEndTimeText.isVisible = true
+            } else {
+                binding.timerEndTimeText.isVisible = false
+                binding.timerEndTimeText.text = null
+            }
         }
 
         viewModel.presets.observe(viewLifecycleOwner) { presets ->
@@ -254,7 +278,17 @@ class TimerFragment : Fragment() {
             .show()
     }
 
+    // Implementation for preset moving
+    override fun onItemMove(fromPosition: Int, toPosition: Int) {
+        // Filter out the "Add" button if it's part of the adapter's list
+        // Check if adapter handles the placeholder item differently, adjust if needed.
+        // Assuming the real items are moved and the ViewModel knows the correct indices.
+        viewModel.movePreset(fromPosition, toPosition)
+    }
+
     override fun onDestroyView() {
+        presetItemTouchHelper?.attachToRecyclerView(null)
+        presetItemTouchHelper = null
         super.onDestroyView()
         _binding = null
     }

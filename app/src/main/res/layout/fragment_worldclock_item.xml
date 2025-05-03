@@ -16,6 +16,23 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
+        <!-- Drag Handle (Visible in Edit Mode) -->
+        <ImageView
+            android:id="@+id/dragHandle"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp" 
+            android:src="@drawable/ic_drag_handle_24" 
+            android:contentDescription="Drag to reorder"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:visibility="gone" 
+            app:tint="?android:attr/textColorSecondary"
+            app:layout_constraintHeight_min="48dp" 
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            tools:visibility="visible"/>
+
         <!-- Analog Clock (Initially Hidden) -->
         <cit.edu.KlockApp.ui.custom.AnalogClockView
             android:id="@+id/itemAnalogClock"
@@ -36,9 +53,10 @@
             android:textSize="16sp"
             android:textColor="?android:attr/textColorPrimary"
             app:layout_constraintTop_toBottomOf="@id/itemAnalogClock"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintStart_toEndOf="@id/dragHandle"
             app:layout_constraintEnd_toStartOf="@id/currentTime"
             app:layout_goneMarginTop="0dp"
+            app:layout_goneMarginStart="0dp"
             tools:text="New York"/>
 
         <!-- Time Difference -->
@@ -49,9 +67,10 @@
             android:textSize="14sp"
             android:textColor="?android:attr/textColorSecondary"
             app:layout_constraintTop_toBottomOf="@id/cityName"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintStart_toEndOf="@id/dragHandle"
             app:layout_constraintEnd_toStartOf="@id/currentTime"
             app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_goneMarginStart="0dp"
             tools:text="-5 hours"/>
 
         <!-- Digital Time -->

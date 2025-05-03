@@ -53,9 +53,9 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     private val _presets = MutableLiveData<List<TimerPreset>>(emptyList())
     val presets: LiveData<List<TimerPreset>> = _presets
 
-    // Optional: LiveData for formatted end time
-    private val _endTimeFormatted = MutableLiveData<String?>()
-    val endTimeFormatted: LiveData<String?> = _endTimeFormatted
+    // New LiveData for the end time timestamp (Long)
+    private val _endTimeMillis = MutableLiveData<Long?>()
+    val endTimeMillis: LiveData<Long?> = _endTimeMillis
 
     init {
         setInitialDuration(0L) // Start with 0 duration initially
@@ -69,7 +69,7 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
             _formattedTime.value = formatMillisToHMS(initialDurationMillis)
             _progressPercentage.value = 100 // Full progress when idle/reset
             timeElapsedBeforePause = 0L // Reset elapsed time
-            _endTimeFormatted.value = null // Clear end time
+            _endTimeMillis.value = null // Clear end time timestamp
         }
     }
 
@@ -83,13 +83,13 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         val currentState = _state.value
         if (currentState == TimerState.IDLE && initialDurationMillis > 0) {
              _state.value = TimerState.RUNNING
-             calculateAndSetEndTime(initialDurationMillis)
+             _endTimeMillis.value = System.currentTimeMillis() + initialDurationMillis // Set timestamp
              startCountdown(initialDurationMillis)
         } else if (currentState == TimerState.PAUSED) {
              _state.value = TimerState.RUNNING
              val resumeDuration = _remainingTimeMillis.value ?: 0L
              if (resumeDuration > 0) {
-                 calculateAndSetEndTime(resumeDuration)
+                 _endTimeMillis.value = System.currentTimeMillis() + resumeDuration // Set timestamp
                  startCountdown(resumeDuration)
              } else {
                  resetTimer() // Reset if trying to resume at 0
@@ -117,24 +117,17 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
                  _formattedTime.value = formatMillisToHMS(0L)
                  _progressPercentage.value = 0
                  _state.value = TimerState.FINISHED // Indicate completion
-                 _endTimeFormatted.value = null // Clear end time
+                 _endTimeMillis.value = null // Clear end time timestamp
                  // TODO: Optionally trigger a notification or sound here
              }
          }.start()
      }
 
-     private fun calculateAndSetEndTime(durationMillis: Long) {
-         val endTimeMillis = System.currentTimeMillis() + durationMillis
-         val sdf = SimpleDateFormat("h:mm a", Locale.getDefault()) // Format like "3:45 PM"
-         _endTimeFormatted.value = "Ends at ${sdf.format(Date(endTimeMillis))}"
-     }
-
-
     fun pauseTimer() {
         if (_state.value == TimerState.RUNNING) {
             countDownTimer?.cancel()
             _state.value = TimerState.PAUSED
-             _endTimeFormatted.value = null // Clear end time on pause
+            _endTimeMillis.value = null // Clear end time timestamp on pause
             // remainingTimeMillis is already updated by onTick
         }
     }
@@ -147,7 +140,7 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         _formattedTime.value = formatMillisToHMS(0L)
         _progressPercentage.value = 100 // Visually full circle when idle
         initialDurationMillis = 0L // Clear the stored initial duration
-        _endTimeFormatted.value = null
+        _endTimeMillis.value = null // Clear end time timestamp
     }
 
     private fun formatMillisToHMS(millis: Long): String {
@@ -172,33 +165,20 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
                 val loadedPresets = mutableListOf<TimerPreset>()
                 for (i in 0 until jsonArray.length()) {
                     val jsonObject = jsonArray.getJSONObject(i)
-                    // Directly read emojiIcon, default to empty string if missing
                     val emoji = jsonObject.optString("emojiIcon", "")
                     val id = jsonObject.optString("id", UUID.randomUUID().toString())
                     val duration = jsonObject.getLong("durationMillis")
-
-                    Log.d("TimerViewModel", "Loading preset - ID: $id, Emoji: '$emoji', Duration: $duration") // Log loaded values
-
-                    // Add the preset regardless of whether emoji is blank
-                    loadedPresets.add(
-                        TimerPreset(
-                            id = id,
-                            emojiIcon = emoji,
-                            durationMillis = duration
-                        )
-                    )
+                    loadedPresets.add(TimerPreset(id = id, emojiIcon = emoji, durationMillis = duration))
                 }
-                // Sort by emojiIcon string value (blank emojis might group together)
-                _presets.value = loadedPresets.sortedBy { it.emojiIcon }
-                Log.d("TimerViewModel", "Loaded presets count: ${loadedPresets.size}") // Log final count
-                Log.d("TimerViewModel", "Loaded presets list: $loadedPresets") // Log the full list
+                _presets.value = loadedPresets
+                Log.d("TimerViewModel", "Loaded presets count: ${loadedPresets.size}")
             } catch (e: Exception) {
                 Log.e("TimerViewModel", "Error loading presets", e)
                 _presets.value = emptyList()
-                savePresetsInternal(emptyList()) // Clear potentially corrupted data
+                savePresetsInternal(emptyList())
             }
         } else {
-            _presets.value = emptyList() // No presets saved yet
+            _presets.value = emptyList()
         }
     }
 
@@ -208,7 +188,7 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
             presetsToSave.forEach { preset ->
                 val jsonObject = JSONObject()
                 jsonObject.put("id", preset.id)
-                jsonObject.put("emojiIcon", preset.emojiIcon) // Save emojiIcon
+                jsonObject.put("emojiIcon", preset.emojiIcon)
                 jsonObject.put("durationMillis", preset.durationMillis)
                 jsonArray.put(jsonObject)
             }
@@ -218,29 +198,22 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Function to add a new preset
     fun addPreset(emojiIcon: String, durationMillis: Long) {
-        Log.d("TimerViewModel", "addPreset called. Emoji: '$emojiIcon', Duration: $durationMillis") // Log input
-        // Basic validation: Ensure emojiIcon is not empty and duration is positive
         if (durationMillis <= 0) {
             Log.w("TimerViewModel", "Invalid input for addPreset: Duration <= 0")
             return
         }
-
         val currentList = _presets.value.orEmpty()
         val newPreset = TimerPreset(emojiIcon = emojiIcon, durationMillis = durationMillis)
-        Log.d("TimerViewModel", "Saving new preset: ID=${newPreset.id}, Emoji='${newPreset.emojiIcon}'") // Log preset being added
-        // Sort by emojiIcon string value
-        val updatedList = (currentList + newPreset).sortedBy { it.emojiIcon }
+        val updatedList = currentList + newPreset
         _presets.value = updatedList
         savePresetsInternal(updatedList)
     }
 
-    // Function to delete a preset
+    // Function to delete a preset - order maintained by filtering
     fun deletePreset(id: String) {
         val currentList = _presets.value.orEmpty()
         val updatedList = currentList.filterNot { it.id == id }
-        // No need to re-sort after deletion unless order is critical beyond add/update sorting
         _presets.value = updatedList
         savePresetsInternal(updatedList)
     }
@@ -252,28 +225,31 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
 
     // Function to update an existing preset
     fun updatePreset(id: String, newEmojiIcon: String, newDurationMillis: Long) {
-         Log.d("TimerViewModel", "updatePreset called. ID: $id, New Emoji: '$newEmojiIcon', New Duration: $newDurationMillis") // Log input
-         // Basic validation
          if (newDurationMillis <= 0) {
             Log.w("TimerViewModel", "Invalid input for updatePreset: Duration <= 0")
             return
         }
-
         val currentList = _presets.value.orEmpty().toMutableList()
         val index = currentList.indexOfFirst { it.id == id }
-
         if (index != -1) {
             val updatedPreset = TimerPreset(id = id, emojiIcon = newEmojiIcon, durationMillis = newDurationMillis)
-            Log.d("TimerViewModel", "Updating preset: ID=${updatedPreset.id}, Emoji='${updatedPreset.emojiIcon}'") // Log preset being updated
             currentList[index] = updatedPreset
-            // Sort by emojiIcon string value
-            val updatedSortedList = currentList.sortedBy { it.emojiIcon }
-            _presets.value = updatedSortedList
-            savePresetsInternal(updatedSortedList)
+            _presets.value = currentList
+            savePresetsInternal(currentList)
         } else {
             Log.w("TimerViewModel", "Preset with ID $id not found for update.")
-            // Optionally handle error (e.g., show message)
         }
+    }
+
+    // New method for reordering (will be used by ItemTouchHelper later)
+    fun movePreset(fromPosition: Int, toPosition: Int) {
+        val currentList = _presets.value?.toMutableList() ?: return
+        if (fromPosition < 0 || fromPosition >= currentList.size || toPosition < 0 || toPosition >= currentList.size) return
+        
+        val item = currentList.removeAt(fromPosition)
+        currentList.add(toPosition, item)
+        _presets.value = currentList
+        savePresetsInternal(currentList)
     }
 
     override fun onCleared() {

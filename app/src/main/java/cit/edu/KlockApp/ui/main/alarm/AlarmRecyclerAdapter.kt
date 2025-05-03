@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.text.format.DateFormat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -32,13 +33,16 @@ class AlarmRecyclerAdapter(
 
     private val expandedItems = mutableSetOf<Int>() // Use alarm ID for tracking
 
-    inner class ViewHolder(val binding: AlarmItemBinding) : RecyclerView.ViewHolder(binding.root) {
+    inner class ViewHolder(val binding: AlarmItemBinding, private val context: Context) : RecyclerView.ViewHolder(binding.root) {
 
-        private val timeFormatter = DateTimeFormatter.ofPattern("h:mm", Locale.getDefault())
-        private val amPmFormatter = DateTimeFormatter.ofPattern("a", Locale.getDefault())
+        // Initialize with a default valid pattern (24h). updateFormat will adjust if needed.
+        private var timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+        private var is24HourFormat: Boolean = false
         private val dayButtonMap: Map<DayOfWeek, Button>
 
         init {
+            updateFormat()
+
             // Map DayOfWeek to Button IDs
             dayButtonMap = mapOf(
                 DayOfWeek.SUNDAY to binding.buttonSunday,
@@ -101,24 +105,38 @@ class AlarmRecyclerAdapter(
              // Example: binding.ringtoneText.setOnClickListener { ... listener.onRingtoneClicked(...) }
         }
 
+        private fun updateFormat() {
+            val currentSetting = DateFormat.is24HourFormat(context)
+            if (currentSetting != is24HourFormat) {
+                is24HourFormat = currentSetting
+                val pattern = if (is24HourFormat) "HH:mm" else "h:mm a"
+                timeFormatter = DateTimeFormatter.ofPattern(pattern, Locale.getDefault())
+            }
+        }
 
         fun bind(alarm: Alarm) {
-            // Bind collapsed view data
-            binding.alarmTime.text = alarm.time.format(timeFormatter)
-            binding.alarmAmPm.text = alarm.time.format(amPmFormatter).uppercase(Locale.getDefault())
+            updateFormat()
+
+            val formattedTimeParts = alarm.time.format(timeFormatter).split(" ")
+            binding.alarmTime.text = formattedTimeParts[0]
+
+            if (!is24HourFormat && formattedTimeParts.size > 1) {
+                binding.alarmAmPm.text = formattedTimeParts[1].uppercase(Locale.getDefault())
+                binding.alarmAmPm.visibility = View.VISIBLE
+            } else {
+                binding.alarmAmPm.visibility = View.GONE
+            }
+
             binding.alarmLabelRepeatInfo.text = formatLabelRepeatInfo(alarm)
-            // Set switch state WITHOUT triggering listener during bind
             binding.alarmEnabledSwitch.setOnCheckedChangeListener(null)
             binding.alarmEnabledSwitch.isChecked = alarm.isEnabled
             binding.alarmEnabledSwitch.setOnCheckedChangeListener { _, isChecked ->
                 listener.onToggle(alarm, isChecked)
             }
 
-            // Bind expanded view data
             binding.repeatCheckbox.isChecked = alarm.repeatDays.isNotEmpty()
             binding.toggleButtonGroup.visibility = if (alarm.repeatDays.isNotEmpty()) View.VISIBLE else View.GONE
             updateDayToggleGroup(alarm.repeatDays)
-            // Set vibrate state WITHOUT triggering listener during bind
             binding.vibrateCheckbox.setOnCheckedChangeListener(null)
             binding.vibrateCheckbox.isChecked = alarm.vibrate
             binding.vibrateCheckbox.setOnCheckedChangeListener { _, isChecked ->
@@ -128,26 +146,21 @@ class AlarmRecyclerAdapter(
                 }
             }
             binding.alarmLabelEditText.setText(alarm.label)
-            // TODO: Bind ringtone text (e.g., get ringtone name from URI)
-            // binding.ringtoneText.text = getRingtoneDisplayName(itemView.context, alarm.ringtoneUri)
 
-            // Handle expansion state
-            updateExpansionState(alarm, false) // Don't animate on initial bind
+            updateExpansionState(alarm, false)
         }
 
          private fun updateDayToggleGroup(repeatDaysList: List<String>) {
-             // Convert List<String> to Set<DayOfWeek> inside the function
              val repeatDaysSet = repeatDaysList.mapNotNull { dayString ->
                  try {
-                     // Assuming strings match DayOfWeek enum names (e.g., "MONDAY", "TUESDAY")
                      DayOfWeek.valueOf(dayString.uppercase(Locale.ROOT))
                  } catch (e: IllegalArgumentException) {
-                     null // Ignore invalid strings
+                     null
                  }
              }.toSet()
 
-             binding.toggleButtonGroup.clearChecked() // Clear previous state
-             repeatDaysSet.forEach { day -> // Use the converted Set
+             binding.toggleButtonGroup.clearChecked()
+             repeatDaysSet.forEach { day ->
                  dayButtonMap[day]?.let { button ->
                      binding.toggleButtonGroup.check(button.id)
                  }
@@ -164,26 +177,21 @@ class AlarmRecyclerAdapter(
              if (daysList.isEmpty()) return "Once"
              if (daysList.size == 7) return "Every day"
 
-             // Convert to DayOfWeek for sorting and formatting
              val daysOfWeek = daysList.mapNotNull {
                  try {
-                      // Assuming strings are full uppercase names like "MONDAY"
                       DayOfWeek.valueOf(it.uppercase(Locale.ROOT))
                  } catch (e: IllegalArgumentException) { null }
              }.toSet()
 
-             // Simple comma-separated list for collapsed view
-             return daysOfWeek.sorted() // Sort for consistent order
-                 .joinToString(", ") { it.name.substring(0, 3) } // "Mon, Tue, Wed"
+             return daysOfWeek.sorted()
+                 .joinToString(", ") { it.name.substring(0, 3) }
         }
 
         private fun updateExpansionState(alarm: Alarm, animate: Boolean) {
             val isExpanded = expandedItems.contains(alarm.id)
             binding.expandedContentGroup.visibility = if (isExpanded) View.VISIBLE else View.GONE
             binding.divider.visibility = if (isExpanded) View.VISIBLE else View.GONE
-            // Rotate expand icon (optional animation)
             binding.expandIcon.rotation = if (isExpanded) 180f else 0f
-             // TODO: Add animation if 'animate' is true
         }
 
          private fun toggleExpansion(alarm: Alarm, position: Int) {
@@ -193,15 +201,13 @@ class AlarmRecyclerAdapter(
              } else {
                  expandedItems.remove(alarm.id)
              }
-             updateExpansionState(alarm, true) // Animate the change
-             // Consider notifying only this item if animation is smooth
-             // notifyItemChanged(position) // May cause flicker with animations
+             updateExpansionState(alarm, true)
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = AlarmItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return ViewHolder(binding)
+        return ViewHolder(binding, parent.context)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {

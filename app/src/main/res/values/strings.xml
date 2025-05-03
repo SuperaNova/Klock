@@ -87,7 +87,10 @@
     <string name="cancel">Cancel</string>
     <string name="add_preset">Add Preset</string>
 
-    <!-- Timer Preset -->
+    <!-- Preset button description -->
     <string name="preset_button_content_description">Preset button: %1$s, Duration: %2$s</string>
+
+    <!-- Timer end time display format -->
+    <string name="timer_ends_at">Ends at %1$s</string>
 
 </resources>
