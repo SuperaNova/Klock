@@ -52,4 +52,19 @@
         <item name="android:windowBackground">@color/eggshell_white</item>
     </style>
 
+    <!-- Style for day toggle buttons in alarm item -->
+    <style name="Widget.App.MaterialButton.Toggle" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:layout_width">48dp</item> 
+        <item name="android:layout_height">48dp</item>
+        <item name="android:padding">0dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:textSize">14sp</item> 
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.App.Button.Circle</item>
+    </style>
+
+    <style name="ShapeAppearance.App.Button.Circle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
 </resources>

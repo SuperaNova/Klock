@@ -79,7 +79,11 @@ class StopwatchFragment : Fragment() {
         }
 
         viewModel.laps.observe(viewLifecycleOwner) { laps ->
-            lapAdapter.submitList(laps)
+            lapAdapter.submitList(laps) {
+                if (laps.isNotEmpty()) {
+                    binding.lapRecyclerView.scrollToPosition(0)
+                }
+            }
         }
     }
 

@@ -37,25 +37,12 @@ class AnalogClockView @JvmOverloads constructor(
 
     private var timeZone: TimeZone = TimeZone.getDefault()
     private val calendar: Calendar = Calendar.getInstance()
+    private var currentTimeMillis: Long = System.currentTimeMillis() // Store time
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var radius: Float = 0f
     private var centerX: Float = 0f
     private var centerY: Float = 0f
-
-    private val handler = Handler(Looper.getMainLooper())
-    private val tickRunnable = object : Runnable {
-        override fun run() {
-            if (showSecondHand) { // Only schedule updates if second hand is shown
-                postInvalidateOnAnimation()
-                handler.postDelayed(this, 1000)
-            } else {
-                // If second hand hidden, update less frequently (e.g., every minute)
-                postInvalidate() // Just redraw once for minute change
-                handler.postDelayed(this, 60000 - (System.currentTimeMillis() % 60000))
-            }
-        }
-    }
 
     init {
         // Load attributes from XML
@@ -78,19 +65,16 @@ class AnalogClockView @JvmOverloads constructor(
         }
     }
 
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        handler.post(tickRunnable)
-    }
-
-    override fun onDetachedFromWindow() {
-        super.onDetachedFromWindow()
-        handler.removeCallbacks(tickRunnable)
-    }
-
     fun setTimeZone(timeZoneId: String) {
         this.timeZone = TimeZone.getTimeZone(timeZoneId)
-        postInvalidate()
+        invalidate() // Redraw when timezone changes
+    }
+
+    fun setTimeMillis(timeMillis: Long) {
+        this.currentTimeMillis = timeMillis
+        if (visibility == View.VISIBLE) { // Only invalidate if visible
+           invalidate() // Request redraw
+        }
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -104,7 +88,7 @@ class AnalogClockView @JvmOverloads constructor(
         super.onDraw(canvas)
         
         calendar.timeZone = timeZone
-        calendar.timeInMillis = System.currentTimeMillis()
+        calendar.timeInMillis = currentTimeMillis 
 
         drawBackground(canvas)
         drawClockFace(canvas)

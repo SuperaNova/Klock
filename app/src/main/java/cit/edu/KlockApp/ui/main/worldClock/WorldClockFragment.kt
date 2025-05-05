@@ -1,26 +1,51 @@
 package cit.edu.KlockApp.ui.main.worldClock
 
+import android.graphics.Canvas
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.SearchView
+import android.os.Handler
+import android.os.Looper
+import android.view.*
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
+import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.setFragmentResultListener
+import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.FragmentWorldclockBinding
+import cit.edu.KlockApp.databinding.FragmentWorldclockItemBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import java.util.TimeZone
+import com.google.android.material.snackbar.Snackbar
+import java.text.SimpleDateFormat
+import java.util.*
+import java.util.concurrent.TimeUnit
+import cit.edu.KlockApp.ui.util.OnItemMoveListener
+import cit.edu.KlockApp.ui.util.SimpleItemTouchHelperCallback
 
-class WorldClockFragment : Fragment() {
+class WorldClockFragment : Fragment(), OnItemMoveListener {
 
     private var _binding: FragmentWorldclockBinding? = null
     private val binding get() = _binding!!
-    internal lateinit var viewModel: WorldClockViewModel
-    private lateinit var worldClockListAdapter: WorldClockAdapter
+    private val viewModel: WorldClockViewModel by activityViewModels()
+    private lateinit var worldClockAdapter: WorldClockAdapter
+    private var itemTouchHelper: ItemTouchHelper? = null
+    private var editMenuItem: MenuItem? = null
+    private var previousClockListSize = 0 // Variable to store previous list size
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
+
+        setFragmentResultListener(TimeZoneSelectorBottomSheetDialogFragment.REQUEST_KEY) { requestKey, bundle ->
+            android.util.Log.d("WorldClockFragment", "Fragment result received: Key=$requestKey")
+            val selectedTimeZoneId = bundle.getString(TimeZoneSelectorBottomSheetDialogFragment.SELECTED_TIMEZONE_ID_KEY)
+            android.util.Log.d("WorldClockFragment", "Received TimeZone ID: $selectedTimeZoneId")
+            selectedTimeZoneId?.let {
+                viewModel.addWorldClock(it)
+            }
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -33,86 +58,115 @@ class WorldClockFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        viewModel = ViewModelProvider(this)[WorldClockViewModel::class.java]
-
         setupRecyclerView()
         observeViewModel()
-        setupFab()
     }
 
     private fun setupRecyclerView() {
-        worldClockListAdapter = WorldClockAdapter()
+        val callback = SimpleItemTouchHelperCallback(this)
+        itemTouchHelper = ItemTouchHelper(callback)
+
+        worldClockAdapter = WorldClockAdapter(itemTouchHelper!!) { clockItem ->
+            viewModel.removeWorldClock(clockItem.timeZoneId)
+        }
+
         binding.worldClockRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
-            adapter = worldClockListAdapter
+            adapter = worldClockAdapter
         }
-        setupSwipeToDelete(binding.worldClockRecyclerView)
-    }
-
-    private fun setupSwipeToDelete(recyclerView: RecyclerView) {
-        ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
-            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder) = false
-
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val position = viewHolder.adapterPosition
-                if (position != RecyclerView.NO_POSITION && position < worldClockListAdapter.currentList.size) {
-                    val item = worldClockListAdapter.currentList[position]
-                    viewModel.removeWorldClock(item.timeZoneId)
-                }
-            }
-        }).attachToRecyclerView(recyclerView)
+        itemTouchHelper?.attachToRecyclerView(binding.worldClockRecyclerView)
     }
 
     private fun observeViewModel() {
-        viewModel.worldClocks.observe(viewLifecycleOwner) { worldClocks ->
-            worldClockListAdapter.submitList(worldClocks)
-        }
-    }
+        viewModel.worldClocks.observe(viewLifecycleOwner, Observer { clocks ->
+            android.util.Log.d("WorldClockFragment", "WorldClocks observer triggered. Received list size: ${clocks.size}, List: $clocks")
+            
+            // Submit the list with a completion callback
+            worldClockAdapter.submitList(clocks) { 
+                // This runnable executes after the diff calculation completes
+                val newSize = worldClockAdapter.currentList.size
+                android.util.Log.d("WorldClockFragment", "submitList completed. Adapter list size: $newSize. Comparing to previous size: $previousClockListSize")
 
-    private fun setupFab() {
-        binding.fabAddWorldClock.setOnClickListener {
-            showTimeZoneSelectionDialog()
-        }
-    }
-
-    fun showTimeZoneSelectionDialog() {
-        val timeZones = TimeZone.getAvailableIDs()
-            .map { it.replace("_", " ") }
-            .sorted()
-
-        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_timezone_search, null)
-        val searchView = dialogView.findViewById<SearchView>(R.id.searchView)
-        val timezoneRecyclerView = dialogView.findViewById<RecyclerView>(R.id.timezoneRecyclerView)
-
-        val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.ThemeOverlay_App_MaterialAlertDialog)
-            .setTitle("Select Time Zone")
-            .setView(dialogView)
-            .setNegativeButton(android.R.string.cancel, null)
-            .create()
-
-        val timezoneAdapter = TimeZoneAdapter(timeZones) { selectedTimeZone ->
-            viewModel.addWorldClock(selectedTimeZone.replace(" ", "_"))
-            dialog.dismiss()
-        }
-
-        timezoneRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-        timezoneRecyclerView.adapter = timezoneAdapter
-
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean = false
-
-            override fun onQueryTextChange(newText: String?): Boolean {
-                timezoneAdapter.filter(newText ?: "")
-                return true
+                // Check if an item was added
+                if (previousClockListSize < newSize) {
+                    binding.worldClockRecyclerView.post {
+                        binding.worldClockRecyclerView.smoothScrollToPosition(newSize - 1)
+                    }
+                }
+                // Update the stored size using the adapter's current list size after update
+                previousClockListSize = newSize
             }
         })
 
-        dialog.show()
+        viewModel.isEditMode.observe(viewLifecycleOwner) { isEditing ->
+            worldClockAdapter.setEditMode(isEditing)
+            updateEditMenuIcon(isEditing)
+            binding.fabAddWorldClock.isEnabled = !isEditing
+        }
+    }
+
+    fun showTimeZoneSelector() {
+        if (parentFragmentManager.findFragmentByTag(TimeZoneSelectorBottomSheetDialogFragment.TAG) == null) {
+            TimeZoneSelectorBottomSheetDialogFragment.newInstance()
+                .show(parentFragmentManager, TimeZoneSelectorBottomSheetDialogFragment.TAG)
+        }
     }
 
     override fun onDestroyView() {
+        viewModel.exitEditMode()
+        itemTouchHelper?.attachToRecyclerView(null)
+        itemTouchHelper = null
+        editMenuItem = null
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun updateEditMenuIcon(isEditing: Boolean) {
+        if (isEditing) {
+            editMenuItem?.setIcon(R.drawable.ic_done_24)
+            editMenuItem?.title = "Done"
+        } else {
+            editMenuItem?.setIcon(R.drawable.ic_edit_24)
+            editMenuItem?.title = "Edit"
+        }
+    }
+
+    override fun onItemMove(fromPosition: Int, toPosition: Int) {
+        viewModel.moveClock(fromPosition, toPosition)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.menu_main, menu)
+        editMenuItem = menu.findItem(R.id.action_edit_reorder)
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        val worldClockItem = menu.findItem(R.id.action_add)
+        val editItem = menu.findItem(R.id.action_edit_reorder)
+        val settingsItem = menu.findItem(R.id.action_settings)
+        
+        // Ensure the toolbar add button is visible
+        worldClockItem?.isVisible = true 
+        editItem?.isVisible = true
+        settingsItem?.isVisible = true
+        
+        viewModel.isEditMode.value?.let { updateEditMenuIcon(it) }
+        
+        super.onPrepareOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_add -> {
+                showTimeZoneSelector()
+                true
+            }
+            R.id.action_edit_reorder -> {
+                viewModel.toggleEditMode()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 }

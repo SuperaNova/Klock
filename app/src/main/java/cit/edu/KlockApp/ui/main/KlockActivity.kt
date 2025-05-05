@@ -21,7 +21,7 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.ActivityKlockBinding
-import cit.edu.KlockApp.ui.main.alarm.AlarmFragment
+import cit.edu.KlockApp.ui.main.worldClock.WorldClockFragment
 import cit.edu.KlockApp.ui.settings.SettingsActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
@@ -87,18 +87,21 @@ class KlockActivity : AppCompatActivity() {
                 true
             }
             R.id.action_add -> {
-                // Get the current fragment
                 val navHostFragment =
                     supportFragmentManager.findFragmentById(R.id.nav_host_fragment_activity_klock)
                 val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
 
                 when (currentFragment) {
+                    is WorldClockFragment -> {
+                        currentFragment.showTimeZoneSelector()
+                        true
+                    }
                     is AlarmFragment -> {
                         currentFragment.launchAddAlarm()
-
+                        true
                     }
+                    else -> super.onOptionsItemSelected(item)
                 }
-                true
             }
             else -> super.onOptionsItemSelected(item)
         }
@@ -107,7 +110,18 @@ class KlockActivity : AppCompatActivity() {
 
 
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
-        menu?.findItem(R.id.action_settings)?.isVisible = shouldShowSettings
+        val navController = findNavController(R.id.nav_host_fragment_activity_klock)
+        val currentDestinationId = navController.currentDestination?.id
+
+        val showAddButton = when (currentDestinationId) {
+            R.id.navigation_worldClock, R.id.navigation_alarm -> true // Show for World Clock and Alarm
+            else -> false // Hide for others (Stopwatch, Timer, etc.)
+        }
+
+        menu?.findItem(R.id.action_add)?.isVisible = showAddButton
+        // Keep existing settings logic if needed, otherwise remove the shouldShowSettings logic
+        menu?.findItem(R.id.action_settings)?.isVisible = true // Assuming settings should always be visible now
+
         return super.onPrepareOptionsMenu(menu)
     }
     private fun requestFirstRunPermissions() {

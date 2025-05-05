@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.NumberPicker
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.ViewModelProvider
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.FragmentTimerBinding
@@ -16,12 +17,33 @@ import android.util.TypedValue
 import android.content.res.Resources
 import androidx.annotation.AttrRes
 import androidx.annotation.ColorInt
+import android.widget.Toast
+import android.widget.Button
+import android.widget.LinearLayout
+import androidx.navigation.fragment.findNavController
+import java.util.concurrent.TimeUnit
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.button.MaterialButton
+import android.view.Gravity
+import java.lang.StringBuilder
+import androidx.recyclerview.widget.GridLayoutManager
+import android.util.Log
+import android.text.format.DateFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import androidx.recyclerview.widget.ItemTouchHelper
+import cit.edu.KlockApp.ui.util.OnItemMoveListener
+import cit.edu.KlockApp.ui.util.SimpleItemTouchHelperCallback
 
-class TimerFragment : Fragment() {
+class TimerFragment : Fragment(), OnItemMoveListener {
 
     private var _binding: FragmentTimerBinding? = null
     private val binding get() = _binding!!
-    private lateinit var viewModel: TimerViewModel
+
+    private val viewModel: TimerViewModel by activityViewModels()
+    private lateinit var presetAdapter: TimerPresetAdapter
+    private var presetItemTouchHelper: ItemTouchHelper? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -29,7 +51,6 @@ class TimerFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentTimerBinding.inflate(inflater, container, false)
-        viewModel = ViewModelProvider(this)[TimerViewModel::class.java]
         return binding.root
     }
 
@@ -38,6 +59,7 @@ class TimerFragment : Fragment() {
 
         setupNumberPickers()
         setupButtons()
+        setupPresetRecyclerView()
         observeViewModel()
     }
 
@@ -49,34 +71,100 @@ class TimerFragment : Fragment() {
         binding.pickerSeconds.minValue = 0
         binding.pickerSeconds.maxValue = 59
 
-        // Optional: Add formatters if desired to ensure leading zeros visually
         val formatter = NumberPicker.Formatter { String.format("%02d", it) }
         binding.pickerHours.setFormatter(formatter)
         binding.pickerMinutes.setFormatter(formatter)
         binding.pickerSeconds.setFormatter(formatter)
+
+        binding.pickerHours.value = 0
+        binding.pickerMinutes.value = 0
+        binding.pickerSeconds.value = 1
+
+        // Listener to enforce minimum 1 second
+        val listener = NumberPicker.OnValueChangeListener { _, _, _ ->
+            if (binding.pickerHours.value == 0 && binding.pickerMinutes.value == 0 && binding.pickerSeconds.value == 0) {
+                // Use postDelayed to introduce a slight delay before correcting
+                binding.pickerSeconds.postDelayed({ 
+                    // Double-check the condition still holds after the delay
+                    if (binding.pickerHours.value == 0 && binding.pickerMinutes.value == 0 && binding.pickerSeconds.value == 0) {
+                         binding.pickerSeconds.value = 1 
+                    }
+                }, 150) // Delay in milliseconds (e.g., 150ms)
+            }
+        }
+
+        binding.pickerHours.setOnValueChangedListener(listener)
+        binding.pickerMinutes.setOnValueChangedListener(listener)
+        binding.pickerSeconds.setOnValueChangedListener(listener)
     }
 
     private fun setupButtons() {
         binding.startPauseButton.setOnClickListener {
-            val hours = binding.pickerHours.value
-            val minutes = binding.pickerMinutes.value
-            val seconds = binding.pickerSeconds.value
+            val currentState = viewModel.state.value
+            if (currentState == TimerState.IDLE) {
+                val hours = binding.pickerHours.value
+                val minutes = binding.pickerMinutes.value
+                val seconds = binding.pickerSeconds.value
+                val durationMillis = java.util.concurrent.TimeUnit.HOURS.toMillis(hours.toLong()) +
+                                     java.util.concurrent.TimeUnit.MINUTES.toMillis(minutes.toLong()) +
+                                     java.util.concurrent.TimeUnit.SECONDS.toMillis(seconds.toLong())
 
-            when (viewModel.state.value) {
-                TimerState.IDLE -> {
-                    viewModel.setTimer(hours, minutes, seconds)
-                    viewModel.startTimer()
+                var finalDurationMillis = durationMillis
+                if (finalDurationMillis <= 0) {
+                    // If duration is 0, force it to 1 second
+                    finalDurationMillis = 1000L
                 }
-                TimerState.RUNNING -> viewModel.pauseTimer()
-                TimerState.PAUSED -> viewModel.resumeTimer()
-                TimerState.FINISHED -> { /* Maybe restart with same time? */ }
-                null -> {}
+                viewModel.setInitialDuration(finalDurationMillis)
+                viewModel.startTimer()
+            } else {
+                when (currentState) {
+                    TimerState.RUNNING -> viewModel.pauseTimer()
+                    TimerState.PAUSED -> viewModel.startTimer()
+                    TimerState.FINISHED -> { viewModel.resetTimer() }
+                    else -> {}
+                }
             }
         }
 
         binding.cancelButton.setOnClickListener {
-            viewModel.cancelTimer()
+            viewModel.resetTimer()
         }
+    }
+
+    private fun setupPresetRecyclerView() {
+        presetAdapter = TimerPresetAdapter(
+            onPresetClick = { preset ->
+                if (viewModel.state.value == TimerState.IDLE) {
+                    updatePickersFromMillis(preset.durationMillis)
+                } else {
+                    Toast.makeText(context, "Stop the current timer to use a preset", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onAddClick = {
+                Log.d("TimerFragment", "Add preset button clicked")
+                try {
+                    val action = TimerFragmentDirections.actionTimerFragmentToAddEditPresetFragment(null)
+                    findNavController().navigate(action)
+                    Log.d("TimerFragment", "Navigation action triggered")
+                } catch (e: Exception) {
+                    Log.e("TimerFragment", "Navigation failed", e)
+                    Toast.makeText(context, "Error navigating. Please try again.", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onPresetLongClick = { preset ->
+                showDeleteConfirmationDialog(preset)
+            }
+        )
+
+        binding.presetsRecyclerView.apply {
+            adapter = presetAdapter
+            setHasFixedSize(true)
+        }
+
+        // Setup ItemTouchHelper for presets
+        val callback = SimpleItemTouchHelperCallback(this)
+        presetItemTouchHelper = ItemTouchHelper(callback)
+        presetItemTouchHelper?.attachToRecyclerView(binding.presetsRecyclerView)
     }
 
     private fun observeViewModel() {
@@ -87,62 +175,120 @@ class TimerFragment : Fragment() {
         viewModel.progressPercentage.observe(viewLifecycleOwner) { progress ->
             binding.timerProgressCircle.progress = progress
         }
-        
-        viewModel.endTimeFormatted.observe(viewLifecycleOwner) { endTime ->
-            binding.timerEndTimeText.text = endTime
-            binding.timerEndTimeText.isVisible = endTime != null
-        }
 
         viewModel.state.observe(viewLifecycleOwner) { state ->
-            updateUiForState(state)
+            updateUI(state)
+        }
+
+        viewModel.endTimeMillis.observe(viewLifecycleOwner) { endTimeMillis ->
+            if (endTimeMillis != null) {
+                val context = requireContext()
+                val is24Hour = DateFormat.is24HourFormat(context)
+                val pattern = if (is24Hour) "HH:mm" else "h:mm a"
+                val sdf = SimpleDateFormat(pattern, Locale.getDefault())
+                
+                val formattedEndTime = sdf.format(Date(endTimeMillis))
+                binding.timerEndTimeText.text = getString(R.string.timer_ends_at, formattedEndTime)
+                binding.timerEndTimeText.isVisible = true
+            } else {
+                binding.timerEndTimeText.isVisible = false
+                binding.timerEndTimeText.text = null
+            }
+        }
+
+        viewModel.presets.observe(viewLifecycleOwner) { presets ->
+            presetAdapter.submitList(presets ?: emptyList())
         }
     }
 
-    private fun updateUiForState(state: TimerState) {
+    private fun updateUI(state: TimerState) {
         val isIdle = state == TimerState.IDLE
         val isRunning = state == TimerState.RUNNING
         val isPaused = state == TimerState.PAUSED
-        
+        val isFinished = state == TimerState.FINISHED
+
         binding.groupTimerSetup.isVisible = isIdle
         binding.groupTimerRunning.isVisible = !isIdle
-        binding.cancelButton.isVisible = isRunning || isPaused
+
+        // Hide presets RecyclerView if timer is not idle
+        binding.presetsRecyclerView.isVisible = isIdle
+
+        binding.cancelButton.isVisible = !isIdle
+        binding.cancelButton.isEnabled = !isIdle
 
         when (state) {
             TimerState.IDLE -> {
                 binding.startPauseButton.text = getString(R.string.start)
-                binding.startPauseButton.setBackgroundColor(resolveThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
-                binding.cancelButton.text = getString(R.string.cancel) // Though invisible
+                binding.startPauseButton.isEnabled = true
+                binding.startPauseButton.setBackgroundColor(getThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
+                binding.cancelButton.isVisible = false
             }
             TimerState.RUNNING -> {
                 binding.startPauseButton.text = getString(R.string.pause)
-                binding.startPauseButton.setBackgroundColor(resolveThemeColor(requireContext(), com.google.android.material.R.attr.colorError))
-                binding.cancelButton.text = getString(R.string.cancel)
+                binding.startPauseButton.isEnabled = true
+                binding.startPauseButton.setBackgroundColor(getThemeColor(requireContext(), com.google.android.material.R.attr.colorSecondary))
             }
             TimerState.PAUSED -> {
                 binding.startPauseButton.text = getString(R.string.resume)
-                binding.startPauseButton.setBackgroundColor(resolveThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
-                binding.cancelButton.text = getString(R.string.cancel)
+                binding.startPauseButton.isEnabled = true
+                binding.startPauseButton.setBackgroundColor(getThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
             }
             TimerState.FINISHED -> {
-                // Could briefly show 'Finished' or just reset to IDLE
-                binding.startPauseButton.text = getString(R.string.start) 
-                binding.startPauseButton.setBackgroundColor(resolveThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
+                binding.startPauseButton.text = getString(R.string.reset)
+                binding.startPauseButton.isEnabled = true
+                binding.startPauseButton.setBackgroundColor(getThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
+                binding.cancelButton.isVisible = false
+                Toast.makeText(context, "Timer Finished!", Toast.LENGTH_LONG).show()
             }
         }
     }
 
-    // Re-use the helper function from StopwatchFragment (or move to a common Util class)
     @ColorInt
-    private fun resolveThemeColor(context: Context, @AttrRes attr: Int): Int {
+    fun getThemeColor(@AttrRes attrRes: Int): Int {
         val typedValue = TypedValue()
-        val theme: Resources.Theme = context.theme
-        if (theme.resolveAttribute(attr, typedValue, true)) {
-            return typedValue.data
-        } 
-        return Color.GRAY // Fallback
+        requireContext().theme.resolveAttribute(attrRes, typedValue, true)
+        return typedValue.data
+    }
+
+    @ColorInt
+    private fun getThemeColor(context: Context, @AttrRes colorAttr: Int): Int {
+        val typedValue = TypedValue()
+        context.theme.resolveAttribute(colorAttr, typedValue, true)
+        return typedValue.data
+    }
+
+    private fun updatePickersFromMillis(durationMillis: Long) {
+        val hours = TimeUnit.MILLISECONDS.toHours(durationMillis).toInt()
+        val minutes = (TimeUnit.MILLISECONDS.toMinutes(durationMillis) % 60).toInt()
+        val seconds = (TimeUnit.MILLISECONDS.toSeconds(durationMillis) % 60).toInt()
+        binding.pickerHours.value = hours
+        binding.pickerMinutes.value = minutes
+        binding.pickerSeconds.value = seconds
+    }
+
+    private fun showDeleteConfirmationDialog(preset: TimerPreset) {
+         MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Delete Preset '${preset.emojiIcon}'?")
+            .setMessage("Are you sure you want to delete this timer preset?")
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton("Delete") { _, _ ->
+                viewModel.deletePreset(preset.id)
+                Toast.makeText(context, "Preset deleted", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
+    // Implementation for preset moving
+    override fun onItemMove(fromPosition: Int, toPosition: Int) {
+        // Filter out the "Add" button if it's part of the adapter's list
+        // Check if adapter handles the placeholder item differently, adjust if needed.
+        // Assuming the real items are moved and the ViewModel knows the correct indices.
+        viewModel.movePreset(fromPosition, toPosition)
     }
 
     override fun onDestroyView() {
+        presetItemTouchHelper?.attachToRecyclerView(null)
+        presetItemTouchHelper = null
         super.onDestroyView()
         _binding = null
     }
