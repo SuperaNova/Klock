@@ -36,7 +36,7 @@ class WorldClockViewModel(application: Application) : AndroidViewModel(applicati
                 prefs.edit().remove("saved_clocks").apply()
             }
         }
-        _worldClocks.postValue(clockList)
+        _worldClocks.value = clockList
     }
 
     fun addWorldClock(timeZoneId: String) {

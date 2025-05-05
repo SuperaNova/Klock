@@ -100,6 +100,7 @@ class WorldClockAdapter(
         private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
         private val calendar = Calendar.getInstance()
         private var is24HourFormat: Boolean = false
+        private var isEditing: Boolean = false
 
         init {
             updateFormat()
@@ -125,19 +126,19 @@ class WorldClockAdapter(
                 if (!editMode) {
                     toggleExpansion(item)
                 }
+                true
             }
             
-            binding.root.setOnLongClickListener {
-                if (!editMode) {
+            binding.deleteButton.setOnClickListener {
+                if (this.isEditing) {
                     onDeleteRequested(item)
-                    true
-                } else {
-                    false
                 }
             }
             
             binding.dragHandle.setOnTouchListener { _, event ->
-                if (editMode && event.actionMasked == MotionEvent.ACTION_DOWN) {
+                android.util.Log.d("WorldClockVH", "Drag handle touched. Action: ${event.actionMasked}, Current VH EditMode: $isEditing")
+                if (this.isEditing && event.actionMasked == MotionEvent.ACTION_DOWN) {
+                    android.util.Log.d("WorldClockVH", "Starting drag!")
                     itemTouchHelper.startDrag(this)
                 }
                 true
@@ -159,7 +160,12 @@ class WorldClockAdapter(
 
         private fun updateExpansionState(item: WorldClockItem, editMode: Boolean) {
             val isExpanded = expandedItems.contains(item.timeZoneId) && !editMode
-            binding.itemAnalogClock.visibility = if (isExpanded) View.VISIBLE else View.GONE
+            val newVisibility = if (isExpanded) View.VISIBLE else View.GONE
+            if (binding.itemAnalogClock.visibility != newVisibility) {
+                binding.itemAnalogClock.visibility = newVisibility
+                // Explicitly request layout after visibility change
+                itemView.requestLayout()
+            }
         }
         
         fun updateTime(item: WorldClockItem) {
@@ -197,7 +203,9 @@ class WorldClockAdapter(
         }
 
         fun updateEditMode(editMode: Boolean) {
+            this.isEditing = editMode
             binding.dragHandle.isVisible = editMode
+            binding.deleteButton.isVisible = editMode
             binding.root.isClickable = !editMode
             binding.root.isLongClickable = !editMode
             if (editMode && binding.itemAnalogClock.isVisible) {

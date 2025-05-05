@@ -37,19 +37,20 @@ class TimeZoneSelectorBottomSheetDialogFragment : BottomSheetDialogFragment() {
         setupRecyclerView()
         setupSearch()
         setupAlphabetIndexer()
-        observeTimeZones()
     }
 
     private fun setupRecyclerView() {
         layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerViewTimezones.layoutManager = layoutManager
 
-        // Initialize adapter with empty list, it will be updated by observer
-        timeZoneAdapter = TimeZoneAdapter(emptyList()) { timeZoneId ->
+        // Fetch the list and create the adapter here, once.
+        val allTimeZoneDisplays = getTimeZoneDisplayList()
+        timeZoneAdapter = TimeZoneAdapter(allTimeZoneDisplays) { timeZoneId ->
             // Set result and dismiss when an item is clicked
             val result = Bundle().apply {
                 putString(SELECTED_TIMEZONE_ID_KEY, timeZoneId)
             }
+            android.util.Log.d(TAG, "Setting fragment result: Key=$REQUEST_KEY, ID=$timeZoneId")
             setFragmentResult(REQUEST_KEY, result)
             dismiss()
         }
@@ -79,56 +80,16 @@ class TimeZoneSelectorBottomSheetDialogFragment : BottomSheetDialogFragment() {
         }
     }
 
-    private fun observeTimeZones() {
-        // Use the correct LiveData property from the ViewModel
-        viewModel.worldClocks.observe(viewLifecycleOwner) { worldClockItems ->
-            // Adapt to the data structure if needed (assuming TimeZoneDisplay is generated elsewhere or needs adaptation)
-            // For now, let's assume the adapter needs List<TimeZoneDisplay> and the ViewModel provides it somehow,
-            // or we need to adapt WorldClockItem. This part might need further refinement based on how TimeZoneDisplay is populated.
-            
-            // TEMP: Placeholder assuming viewModel provides TimeZoneDisplay list directly for the selector
-            // This needs verification. If viewModel.worldClocks is List<WorldClockItem>, we need a way to get the full TimeZoneDisplay list.
-            // Let's assume WorldClockViewModel needs a method to provide all selectable timezones.
-            // For now, commenting out the problematic observer logic until the source of TimeZoneDisplay is clarified.
-            /* 
-            // Update the adapter's data source and apply filter if needed
-            timeZoneAdapter = TimeZoneAdapter(timeZoneDisplays) { timeZoneId -> // timeZoneDisplays is undefined here
-                val result = Bundle().apply {
-                    putString(SELECTED_TIMEZONE_ID_KEY, timeZoneId)
-                }
-                setFragmentResult(REQUEST_KEY, result)
-                dismiss()
-            }
-             // Preserve current search filter
-             timeZoneAdapter.filter(binding.searchEditText.text.toString())
-             binding.recyclerViewTimezones.adapter = timeZoneAdapter
-            */
-            
-            // TODO: Fetch the full list of TimeZoneDisplay objects correctly.
-            // Maybe from a utility function or a separate LiveData in the ViewModel?
-            // For now, initializing with an empty list in setupRecyclerView() and filter will work on that.
-            // The list needs to be populated from a source like TimeZone.getAvailableIDs()
-            // Let's move the population logic here temporarily
-            
-             val allTimeZoneDisplays = getTimeZoneDisplayList() // Get the full list
-             timeZoneAdapter = TimeZoneAdapter(allTimeZoneDisplays) { timeZoneId ->
-                 val result = Bundle().apply {
-                     putString(SELECTED_TIMEZONE_ID_KEY, timeZoneId)
-                 }
-                 setFragmentResult(REQUEST_KEY, result)
-                 dismiss()
-             }
-             timeZoneAdapter.filter(binding.searchEditText.text.toString()) // Apply filter
-             binding.recyclerViewTimezones.adapter = timeZoneAdapter // Set adapter
-             
-        } // End of incorrect observer
-    }
-
     // Function to get timezone list - Filtered for better user experience
     private fun getTimeZoneDisplayList(): List<TimeZoneDisplay> {
         val cityToTimeZoneIdMap = mutableMapOf<String, String>()
 
         TimeZone.getAvailableIDs().forEach { id ->
+            // Explicitly skip GMT and Etc/GMT timezones
+            if (id.startsWith("GMT", ignoreCase = true) || id.startsWith("Etc/GMT", ignoreCase = true)) {
+                return@forEach // Skip this ID
+            }
+
             if (id.contains('/')) { // Keep only Region/City format
                 val city = id.substringAfterLast('/').replace('_', ' ')
                 // Only add if the city name isn't already mapped, preferring the first encountered ID for a given city name

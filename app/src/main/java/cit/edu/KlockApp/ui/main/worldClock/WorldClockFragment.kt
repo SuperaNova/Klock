@@ -31,18 +31,18 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
     private lateinit var worldClockAdapter: WorldClockAdapter
     private var itemTouchHelper: ItemTouchHelper? = null
     private var editMenuItem: MenuItem? = null
+    private var previousClockListSize = 0 // Variable to store previous list size
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
 
-        setFragmentResultListener(TimeZoneSelectorBottomSheetDialogFragment.REQUEST_KEY) { _, bundle ->
+        setFragmentResultListener(TimeZoneSelectorBottomSheetDialogFragment.REQUEST_KEY) { requestKey, bundle ->
+            android.util.Log.d("WorldClockFragment", "Fragment result received: Key=$requestKey")
             val selectedTimeZoneId = bundle.getString(TimeZoneSelectorBottomSheetDialogFragment.SELECTED_TIMEZONE_ID_KEY)
+            android.util.Log.d("WorldClockFragment", "Received TimeZone ID: $selectedTimeZoneId")
             selectedTimeZoneId?.let {
                 viewModel.addWorldClock(it)
-                binding.worldClockRecyclerView.postDelayed({
-                   binding.worldClockRecyclerView.smoothScrollToPosition(worldClockAdapter.itemCount - 1)
-                }, 100)
             }
         }
     }
@@ -60,7 +60,6 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
         observeViewModel()
-        setupFab()
     }
 
     private fun setupRecyclerView() {
@@ -68,12 +67,7 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
         itemTouchHelper = ItemTouchHelper(callback)
 
         worldClockAdapter = WorldClockAdapter(itemTouchHelper!!) { clockItem ->
-            // Replaced direct delete confirmation with Snackbar UNDO logic in onSwiped
-            // showDeleteConfirmation(clockItem)
-            // Let's use the onSwiped logic primarily, long-press might be redundant or need different handling
-            // For now, we can trigger the delete via ViewModel directly on long-press if desired,
-            // but the swipe-to-delete provides UNDO. Let's keep the swipe for deletion.
-            // Maybe long-press could enter edit mode in the future?
+            viewModel.removeWorldClock(clockItem.timeZoneId)
         }
 
         binding.worldClockRecyclerView.apply {
@@ -85,7 +79,23 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
 
     private fun observeViewModel() {
         viewModel.worldClocks.observe(viewLifecycleOwner, Observer { clocks ->
-            worldClockAdapter.submitList(clocks)
+            android.util.Log.d("WorldClockFragment", "WorldClocks observer triggered. Received list size: ${clocks.size}, List: $clocks")
+            
+            // Submit the list with a completion callback
+            worldClockAdapter.submitList(clocks) { 
+                // This runnable executes after the diff calculation completes
+                val newSize = worldClockAdapter.currentList.size
+                android.util.Log.d("WorldClockFragment", "submitList completed. Adapter list size: $newSize. Comparing to previous size: $previousClockListSize")
+
+                // Check if an item was added
+                if (previousClockListSize < newSize) {
+                    binding.worldClockRecyclerView.post {
+                        binding.worldClockRecyclerView.smoothScrollToPosition(newSize - 1)
+                    }
+                }
+                // Update the stored size using the adapter's current list size after update
+                previousClockListSize = newSize
+            }
         })
 
         viewModel.isEditMode.observe(viewLifecycleOwner) { isEditing ->
@@ -95,16 +105,10 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
         }
     }
 
-    private fun setupFab() {
-        binding.fabAddWorldClock.setOnClickListener {
-            showTimeZoneSelector()
-        }
-    }
-
     fun showTimeZoneSelector() {
-        if (childFragmentManager.findFragmentByTag(TimeZoneSelectorBottomSheetDialogFragment.TAG) == null) {
+        if (parentFragmentManager.findFragmentByTag(TimeZoneSelectorBottomSheetDialogFragment.TAG) == null) {
             TimeZoneSelectorBottomSheetDialogFragment.newInstance()
-                .show(childFragmentManager, TimeZoneSelectorBottomSheetDialogFragment.TAG)
+                .show(parentFragmentManager, TimeZoneSelectorBottomSheetDialogFragment.TAG)
         }
     }
 
@@ -142,7 +146,8 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
         val editItem = menu.findItem(R.id.action_edit_reorder)
         val settingsItem = menu.findItem(R.id.action_settings)
         
-        worldClockItem?.isVisible = true
+        // Ensure the toolbar add button is visible
+        worldClockItem?.isVisible = true 
         editItem?.isVisible = true
         settingsItem?.isVisible = true
         
