@@ -15,4 +15,3 @@ class AlarmDismissReceiver : BroadcastReceiver() {
             .cancel(alarmLabel.hashCode())
     }
 }
-
