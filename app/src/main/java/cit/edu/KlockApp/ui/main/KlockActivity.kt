@@ -22,8 +22,6 @@ import androidx.navigation.ui.setupWithNavController
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.ActivityKlockBinding
 import cit.edu.KlockApp.ui.main.worldClock.WorldClockFragment
-import cit.edu.KlockApp.ui.main.alarm.AlarmAddActivity
-import cit.edu.KlockApp.ui.main.alarm.AlarmFragment
 import cit.edu.KlockApp.ui.settings.SettingsActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
