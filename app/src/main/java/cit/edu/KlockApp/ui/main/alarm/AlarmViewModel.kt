@@ -3,6 +3,7 @@ package cit.edu.KlockApp.ui.main.alarm
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
+import android.media.RingtoneManager
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -35,7 +36,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun loadAlarms(): List<Alarm> {
         val stored = prefs.getString(ALARMS_KEY, null)
-        val firstLaunch = prefs.getBoolean(FIRST_LAUNCH_KEY, true)  // Check for first launch
+        val firstLaunch = prefs.getBoolean(FIRST_LAUNCH_KEY, true)
 
         // If it's the first launch and there are no alarms, create a default alarm
         if (firstLaunch) {
@@ -58,6 +59,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+
     private fun saveAlarms(alarms: List<Alarm>) {
         try {
             val serialized = json.encodeToString(alarms)
@@ -76,7 +78,10 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
             time = time,
             isEnabled = true,
             repeatDays = emptyList(),
-            label = "Wake Up"
+            label = "Wake Up",
+            snoozeMinutes = 5,
+            vibrateOnAlarm = true,
+            alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM).toString()
         )
     }
 

@@ -14,5 +14,8 @@ data class Alarm(
     @Contextual
     val time: LocalTime,
     val repeatDays: List<String>,
-    var isEnabled: Boolean
+    var isEnabled: Boolean,
+    var snoozeMinutes: Int,
+    var vibrateOnAlarm: Boolean,
+    var alarmSound: String
 ) : Parcelable

@@ -4,9 +4,9 @@
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
 
     <application
@@ -19,8 +19,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Klock"
         tools:targetApi="31">
-
-
 
         <activity
             android:name=".ui.main.KlockActivity"
@@ -55,19 +53,14 @@
             android:exported="false"
             android:theme="@style/Theme.Klock"/>
         <activity
-            android:name=".ui.main.alarm.AlarmEditActivity"
-            android:parentActivityName=".ui.main.KlockActivity"
+            android:name=".ui.main.alarm.AlarmActivity"
+            android:exported="false"
             android:theme="@style/Theme.Klock"/>
 
-        <activity
-            android:name=".ui.main.alarm.AlarmAddActivity"
-            android:parentActivityName=".ui.main.KlockActivity"
-            android:theme="@style/Theme.Klock"/>
-
-        <!-- Register the AlarmReceiver here with the exported attribute -->
-        <receiver android:name=".ui.main.alarm.AlarmReceiver"/>
-        <receiver android:name=".ui.main.alarm.AlarmDismissReceiver"/>
-        <service android:name=".ui.main.alarm.AlarmService"
+        <receiver android:name=".ui.main.alarm.notificationManager.SnoozeReceiver" />
+        <receiver android:name=".ui.main.alarm.notificationManager.AlarmReceiver"/>
+        <receiver android:name=".ui.main.alarm.notificationManager.AlarmDismissReceiver"/>
+        <service android:name=".ui.main.alarm.notificationManager.AlarmService"
             android:foregroundServiceType="specialUse"
             android:exported="false"/>
     </application>

@@ -1,4 +1,4 @@
-package cit.edu.KlockApp.ui.main.alarm
+package cit.edu.KlockApp.ui.main.alarm.notificationManager
 
 import android.content.BroadcastReceiver
 import android.content.Context

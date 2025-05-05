@@ -14,7 +14,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -23,6 +22,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.FragmentAlarmBinding
+import cit.edu.KlockApp.ui.main.alarm.notificationManager.AlarmReceiver
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -52,7 +52,7 @@ class AlarmFragment : Fragment() {
             alarms = alarmViewModel.alarms.value?.toMutableList() ?: mutableListOf(),
             onItemClick = { alarm ->
                 // When clicking an alarm, pass a copy of it to avoid reference issues
-                val intent = Intent(requireContext(), AlarmEditActivity::class.java).apply {
+                val intent = Intent(requireContext(), AlarmActivity::class.java).apply {
                     putExtra("alarm", alarm.copy())  // Ensure you're passing a copy
                 }
                 updateAlarmLauncher.launch(intent)
@@ -97,7 +97,7 @@ class AlarmFragment : Fragment() {
 
                 // Remove from ViewModel and notify user
                 alarmViewModel.deleteAlarm(deleted)
-                Toast.makeText(requireContext(), "Alarm deleted", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "${deleted.label} deleted", Toast.LENGTH_SHORT).show()
             }
 
             val swipeThreshold = 100f // Define a threshold for when to show the icon
@@ -169,11 +169,6 @@ class AlarmFragment : Fragment() {
                 // Pass a copy of the alarm to ensure the ViewModel works with a new instance
                 alarmViewModel.updateAlarm(updated.copy())  // Using .copy() to avoid reference issues
                 val fmt = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
-                Toast.makeText(
-                    requireContext(),
-                    "Alarm updated: ${updated.time.format(fmt)}",
-                    Toast.LENGTH_SHORT
-                ).show()
             }
         }
     }
@@ -190,7 +185,7 @@ class AlarmFragment : Fragment() {
     }
 
     fun launchAddAlarm() {
-        val intent = Intent(requireContext(), AlarmAddActivity::class.java)
+        val intent = Intent(requireContext(), AlarmActivity::class.java)
         addAlarmLauncher.launch(intent)
     }
 
