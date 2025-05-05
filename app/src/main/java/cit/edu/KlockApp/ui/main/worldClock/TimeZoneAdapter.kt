@@ -26,8 +26,8 @@ class TimeZoneAdapter(
         val timeZoneDisplay = filteredTimeZones[position]
         holder.bind(timeZoneDisplay, onItemClick)
     }
-
     override fun getItemCount(): Int = filteredTimeZones.size
+
 
     fun filter(query: String) {
         filteredTimeZones = if (query.isEmpty()) {
