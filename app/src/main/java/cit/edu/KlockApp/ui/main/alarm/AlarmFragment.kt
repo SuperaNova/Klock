@@ -4,9 +4,6 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
@@ -120,23 +117,12 @@ class AlarmFragment : Fragment() {
         vm.alarms.observe(viewLifecycleOwner) { list ->
             adapter.submitList(list.toList())
         }
-
-        // Hook up your “+” menu item via fragment’s host activity’s onOptionsItemSelected
-        setHasOptionsMenu(true)
     }
 
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.action_bar_menu, menu)
-        super.onCreateOptionsMenu(menu, inflater)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
-        R.id.action_add -> {
-            val intent = Intent(requireContext(), AlarmActivity::class.java)
-            alarmLauncher.launch(intent)
-            true
-        }
-        else -> super.onOptionsItemSelected(item)
+    // Public function for Activity to call
+    fun launchAddAlarm() {
+         val intent = Intent(requireContext(), AlarmActivity::class.java)
+         alarmLauncher.launch(intent)
     }
 
     override fun onDestroyView() {

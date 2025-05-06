@@ -2,39 +2,36 @@
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/scrollView1"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:background="?attr/colorSurface">
+
     <LinearLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools"
         android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/eggshell_white"
+        android:layout_height="wrap_content"
         android:padding="10dp"
-        tools:context=".LoginActivity"
-        >
+        tools:context=".LoginActivity">
 
         <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="left"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
             android:orientation="horizontal"
-            android:padding="10dp"
-            android:layout_marginLeft="10dp"
-            android:layout_marginTop="10dp">
+            android:gravity="center_vertical"
+            android:paddingStart="4dp"
+            android:paddingEnd="16dp">
 
             <ImageButton
-                android:backgroundTint="@color/eggshell_white"
                 android:id="@+id/button_back"
-                android:layout_width="36dp"
-                android:layout_height="match_parent"
-                android:layout_margin="0dp"
-                android:layout_weight="0.2"
-                android:padding="0dp"
-                android:src="@drawable/arrowleft"/>
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="12dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/arrowleft"
+                app:tint="?attr/colorControlNormal" />
         </LinearLayout>
 
         <ImageView
@@ -42,9 +39,8 @@
             android:layout_width="150dp"
             android:layout_height="200dp"
             android:paddingTop="50dp"
-            android:layout_gravity="center_horizontal">
-        </ImageView>
-
+            android:layout_gravity="center_horizontal"
+            app:tint="?attr/colorPrimary" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -53,10 +49,10 @@
             android:text="Klock"
             android:textAlignment="center"
             android:textStyle="bold"
-            android:textSize="40dp"
-            android:textColor="@color/oxford_blue"
-            android:fontFamily="serif">
-        </TextView>
+            android:textSize="40sp"
+            android:textColor="?attr/colorPrimary"
+            android:fontFamily="serif"/>
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -64,93 +60,71 @@
             android:layout_gravity="center"
             android:textAlignment="center"
             android:textStyle="bold"
-            android:textSize="25dp"
+            android:textSize="25sp"
             android:paddingTop="25dp"
-            android:textColor="@color/oxford_blue"
-            android:fontFamily="serif">
+            android:textColor="?attr/colorOnSurface"
+            android:fontFamily="serif"/>
 
-        </TextView>
-
-        <LinearLayout
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:layout_marginTop="16dp"
             android:paddingLeft="10dp"
             android:paddingRight="10dp"
-            android:paddingBottom="10dp">
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Username:"
-                android:paddingRight="10dp"
-                android:textColor="@color/oxford_blue"
-                android:fontFamily="serif">
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
-            </TextView>
-
-            <EditText
+            <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/username"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:hint="Username"
+                android:inputType="text"/>
+        </com.google.android.material.textfield.TextInputLayout>
 
-            </EditText>
-        </LinearLayout>
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            app:passwordToggleEnabled="true"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/password"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Password"
+                android:inputType="textPassword"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingLeft="10dp"
-            android:paddingRight="10dp"
-            android:paddingBottom="10dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10dp"
-                android:text="Password:"
-                android:textColor="@color/oxford_blue"
-                android:fontFamily="serif">
-
-            </TextView>
-
-            <EditText
-                android:id="@+id/password"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-            </EditText>
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
             android:orientation="vertical"
-            android:padding="10dp">
-            <Button
+            android:padding="10dp"
+            android:layout_marginTop="24dp"
+            android:gravity="center_horizontal">
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_login"
-                android:layout_width="120dp"
+                android:layout_width="wrap_content"
+                android:minWidth="120dp"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:backgroundTint="@color/oxford_blue"
-                android:clickable="true"
-                android:focusable="true"
                 android:text="Login"
-                android:textAlignment="center"
                 android:fontFamily="serif"
-                android:textColor="@color/eggshell_white">
-            </Button>
-            <Button
+                />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_signup"
-                android:layout_width="120dp"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:minWidth="120dp"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:backgroundTint="@color/oxford_blue"
-                android:clickable="true"
-                android:focusable="true"
+                android:layout_marginTop="8dp"
                 android:text="Sign Up"
-                android:textAlignment="center"
                 android:fontFamily="serif"
-                android:textColor="@color/eggshell_white">
-            </Button>
+                />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

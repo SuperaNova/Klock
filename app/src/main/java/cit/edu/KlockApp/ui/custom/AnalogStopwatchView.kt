@@ -16,15 +16,22 @@ class AnalogStopwatchView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    // Basic appearance properties (could be made customizable later via attrs)
+    // Main hand properties
     private var handColor = Color.RED
+    private var handWidth = 6f
+
+    // Lap hand properties
+    private var lapHandColor = Color.BLUE // Different color for lap hand
+    private var lapHandWidth = 4f // Slightly thinner
+
+    // Clock face properties
     private var markerColor = Color.DKGRAY
     private var borderColor = Color.DKGRAY
-    private var handWidth = 6f
     private var markerWidth = 4f
     private var borderWidth = 8f
 
     private var elapsedTimeMillis: Long = 0L
+    private var lastLapResetElapsedTime: Long = -1L // Time when lap hand was last reset
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var radius: Float = 0f
@@ -38,6 +45,18 @@ class AnalogStopwatchView @JvmOverloads constructor(
         postInvalidate() // Redraw when time changes
     }
 
+    // Method to call when a lap is recorded
+    fun recordLap() {
+        this.lastLapResetElapsedTime = this.elapsedTimeMillis
+        postInvalidate()
+    }
+
+    // Method to call when stopwatch is reset
+    fun resetLaps() {
+        this.lastLapResetElapsedTime = -1L // Reset lap state
+        postInvalidate()
+    }
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         centerX = w / 2f
@@ -48,7 +67,9 @@ class AnalogStopwatchView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         drawClockFace(canvas)
+        drawLapHand(canvas) // Draw lap hand first (behind main)
         drawHand(canvas)
+        drawCenterPivot(canvas)
     }
 
     private fun drawClockFace(canvas: Canvas) {
@@ -97,5 +118,47 @@ class AnalogStopwatchView @JvmOverloads constructor(
         // Optional: Center pivot point
         paint.style = Paint.Style.FILL
         canvas.drawCircle(centerX, centerY, handWidth, paint)
+    }
+
+    // Function to draw the lap hand
+    private fun drawLapHand(canvas: Canvas) {
+        val lapTimeToShowMillis: Long = if (lastLapResetElapsedTime < 0L) {
+            // Before first lap or after reset: Mirror the main hand
+            elapsedTimeMillis
+        } else {
+            // After a lap: Show time elapsed since that lap
+            elapsedTimeMillis - lastLapResetElapsedTime
+        }
+
+        val totalSeconds = lapTimeToShowMillis / 1000f
+        val displaySeconds = totalSeconds % 60
+
+        paint.color = lapHandColor
+        paint.strokeWidth = lapHandWidth
+        paint.style = Paint.Style.STROKE
+
+        val angle = Math.PI * displaySeconds / 30 - Math.PI / 2
+        val handRadius = radius * 0.8f // Same length as main hand
+
+        canvas.drawLine(
+            centerX,
+            centerY,
+            centerX + cos(angle).toFloat() * handRadius,
+            centerY + sin(angle).toFloat() * handRadius,
+            paint
+        )
+    }
+
+    // Function to draw the center pivot
+    private fun drawCenterPivot(canvas: Canvas) {
+         // Draw main pivot slightly larger than main hand width
+        paint.color = handColor
+        paint.style = Paint.Style.FILL
+        canvas.drawCircle(centerX, centerY, handWidth * 1.2f, paint)
+        // Overlay lap pivot only if a lap has been recorded and not reset
+        if (lastLapResetElapsedTime >= 0L) {
+             paint.color = lapHandColor
+             canvas.drawCircle(centerX, centerY, lapHandWidth * 1.2f, paint)
+        }
     }
 } 

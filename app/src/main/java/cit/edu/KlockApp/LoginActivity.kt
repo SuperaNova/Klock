@@ -1,37 +1,53 @@
 package cit.edu.KlockApp
 
-import android.app.Activity
-
 import android.content.Intent
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.Toast
+import cit.edu.KlockApp.databinding.ActivityLoginBinding
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
+import android.content.SharedPreferences
+import androidx.preference.PreferenceManager
 
-class LoginActivity : Activity() {
+class LoginActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityLoginBinding
+    private lateinit var sharedPreferences: SharedPreferences
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
+        // Apply theme BEFORE super.onCreate()
+        // applyAppTheme() // REMOVED
+        applyAppTheme() // Restored and will be implemented
 
-        val buttonLogin = findViewById<Button>(R.id.button_login)
+        super.onCreate(savedInstanceState)
+        binding = ActivityLoginBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        val buttonLogin = binding.buttonLogin
         buttonLogin.setOnClickListener {
-            validateInput();
+            validateInput()
         }
-        val buttonSignup = findViewById<Button>(R.id.button_signup)
+        val buttonSignup = binding.buttonSignup
         buttonSignup.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
-        val buttonBack = findViewById<ImageButton>(R.id.button_back)
+        val buttonBack = binding.buttonBack
         buttonBack.setOnClickListener {
             finish()
         }
 
     }
 
+    private fun applyAppTheme() {
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val themeResId = sharedPreferences.getInt(ProfileActivity.PREF_KEY_THEME_ID, ProfileActivity.THEME_DEFAULT_ID)
+        setTheme(themeResId)
+    }
+
     private fun validateInput() {
-        val username = findViewById<EditText>(R.id.username).text.toString().trim()
-        val password = findViewById<EditText>(R.id.password).text.toString().trim()
+        val username = binding.username.text.toString().trim()
+        val password = binding.password.text.toString().trim()
 
         // Username validation
         when {

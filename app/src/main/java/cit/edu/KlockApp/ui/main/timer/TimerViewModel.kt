@@ -15,6 +15,19 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import android.net.Uri
+import android.media.RingtoneManager
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Intent
+import android.os.Build
+import android.widget.Toast
+import android.provider.Settings
+import cit.edu.KlockApp.timer.TimerFinishedReceiver
 
 // Define TimerPreset data class
 data class TimerPreset(
@@ -31,7 +44,7 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefs = application.getSharedPreferences("timer_prefs", Context.MODE_PRIVATE)
 
-    private var initialDurationMillis: Long = 0L
+    var initialDurationMillis: Long = 0L
     private var countDownTimer: CountDownTimer? = null
     private var timeElapsedBeforePause: Long = 0L // To accurately calculate remaining time on resume
 
@@ -56,6 +69,16 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     // New LiveData for the end time timestamp (Long)
     private val _endTimeMillis = MutableLiveData<Long?>()
     val endTimeMillis: LiveData<Long?> = _endTimeMillis
+
+    // LiveData for Timer Sound URI
+    private val _timerSoundUri = MutableLiveData<String>(
+        // Default to alarm sound, or null if none
+        RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)?.toString()
+    )
+    val timerSoundUri: LiveData<String> = _timerSoundUri
+
+    private var timerJob: Job? = null
+    private var targetEndTime: Long = 0L
 
     init {
         setInitialDuration(0L) // Start with 0 duration initially
@@ -99,6 +122,10 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
 
      private fun startCountdown(duration: Long) {
          countDownTimer?.cancel() // Cancel any existing timer
+
+         // Schedule AlarmManager broadcast
+         scheduleTimerFinishedBroadcast(targetEndTime)
+
          countDownTimer = object : CountDownTimer(duration, 50) { // Tick frequently for smooth progress
              override fun onTick(millisUntilFinished: Long) {
                  _remainingTimeMillis.value = millisUntilFinished
@@ -118,7 +145,8 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
                  _progressPercentage.value = 0
                  _state.value = TimerState.FINISHED // Indicate completion
                  _endTimeMillis.value = null // Clear end time timestamp
-                 // TODO: Optionally trigger a notification or sound here
+                 // NOTE: Sound/Notification now handled by BroadcastReceiver
+                 // Do NOT trigger actions here
              }
          }.start()
      }
@@ -126,14 +154,17 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     fun pauseTimer() {
         if (_state.value == TimerState.RUNNING) {
             countDownTimer?.cancel()
+            timerJob?.cancel() // Also cancel the coroutine job if it was used
+            cancelTimerFinishedBroadcast() // Cancel the scheduled broadcast
             _state.value = TimerState.PAUSED
             _endTimeMillis.value = null // Clear end time timestamp on pause
-            // remainingTimeMillis is already updated by onTick
         }
     }
 
     fun resetTimer() {
         countDownTimer?.cancel()
+        timerJob?.cancel() // Also cancel the coroutine job if it was used
+        cancelTimerFinishedBroadcast() // Cancel the scheduled broadcast
         _state.value = TimerState.IDLE
         // Reset to 0, not initial duration, user needs to set a new time or preset
         _remainingTimeMillis.value = 0L
@@ -252,8 +283,75 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         savePresetsInternal(currentList)
     }
 
+    // Function to update the sound URI
+    fun setTimerSound(uri: Uri?) {
+        _timerSoundUri.value = uri?.toString() ?: ""
+    }
+
+    // --- AlarmManager Scheduling ---
+
+    private fun scheduleTimerFinishedBroadcast(triggerAtMillis: Long) {
+        val context = getApplication<Application>().applicationContext
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        // Check for permission on Android 12+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            // Cannot schedule - Maybe notify the user? ViewModel shouldn't directly start activities.
+            Log.w("TimerViewModel", "Cannot schedule exact timer alarm, permission missing.")
+            // Consider posting an event to the Fragment to request permission
+            return
+        }
+
+        val intent = Intent(context, TimerFinishedReceiver::class.java).apply {
+            action = TimerFinishedReceiver.ACTION_TIMER_FINISHED
+            putExtra(TimerFinishedReceiver.EXTRA_SOUND_URI, _timerSoundUri.value)
+            //putExtra(TimerFinishedReceiver.EXTRA_TIMER_LABEL, "My Timer") // Optional: Add label later
+        }
+
+        // Use a unique PendingIntent request code for timers
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            TIMER_PENDING_INTENT_ID, // Use a constant ID for the timer pending intent
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+            }
+            Log.d("TimerViewModel", "TimerFinished broadcast scheduled for $triggerAtMillis")
+        } catch (e: SecurityException) {
+             Log.e("TimerViewModel", "SecurityException scheduling timer broadcast", e)
+             // Handle case where permission might have been revoked
+        }
+    }
+
+    private fun cancelTimerFinishedBroadcast() {
+        val context = getApplication<Application>().applicationContext
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, TimerFinishedReceiver::class.java).apply {
+            action = TimerFinishedReceiver.ACTION_TIMER_FINISHED
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            TIMER_PENDING_INTENT_ID,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.cancel(pendingIntent)
+        Log.d("TimerViewModel", "TimerFinished broadcast cancelled")
+    }
+
     override fun onCleared() {
         super.onCleared()
         countDownTimer?.cancel() // Clean up timer
+        timerJob?.cancel()
+    }
+
+    companion object {
+        private const val TIMER_PENDING_INTENT_ID = 9876 // Unique ID for timer pending intent
     }
 }

@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -27,23 +28,45 @@ import cit.edu.KlockApp.ui.main.alarm.notificationManager.AlarmReceiver
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
+// Required imports for theme handling
+import android.content.SharedPreferences
+import androidx.preference.PreferenceManager
+import cit.edu.KlockApp.ProfileActivity // Assuming constants are here
+// Import the correct Material types
+import com.google.android.material.switchmaterial.SwitchMaterial
+import com.google.android.material.button.MaterialButton
+// Import Toolbar
+import androidx.appcompat.widget.Toolbar
 
 class AlarmActivity : AppCompatActivity() {
 
     protected lateinit var timePicker: TimePicker
-    private lateinit var repeatButton: Button
-    private lateinit var alarmSoundButton: Button
+    private lateinit var repeatButton: MaterialButton
+    private lateinit var alarmSoundButton: MaterialButton
     protected lateinit var labelEditText: EditText
     private lateinit var snoozeSpinner: Spinner
-    private lateinit var vibrateSwitch: Switch
+    private lateinit var vibrateSwitch: SwitchMaterial
     protected lateinit var alarm: Alarm
     private var selectedAlarmSoundUri: Uri? = null
     protected var selectedDays = mutableListOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Apply theme BEFORE super.onCreate()
+        applyAppTheme()
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_alarm)
-        supportActionBar?.title = "Create Alarm"
+
+        // Find and set the toolbar
+        val toolbar: Toolbar = findViewById(R.id.toolbar_alarm)
+        setSupportActionBar(toolbar)
+
+        // Choose the layout based on whether you're creating or editing the alarm
+        if (intent.hasExtra("alarm")) {
+            supportActionBar?.title = "Edit Alarm"
+        } else {
+            supportActionBar?.title = "Create Alarm"
+        }
 
         // Enable the "up button" (back button) in the ActionBar
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -55,6 +78,8 @@ class AlarmActivity : AppCompatActivity() {
         initializeViews()
         setupSnoozeSpinner()
         setupRepeatDialog()
+
+
     }
 
     // Abstract function for initializing alarm
@@ -352,11 +377,19 @@ class AlarmActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.action_bar_menu, menu)
 
+        // Hide Settings icon for this activity
         val settingsItem = menu?.findItem(R.id.action_settings)
         settingsItem?.isVisible = false
 
+        // Hide Edit icon for this activity
+        val editItem = menu?.findItem(R.id.action_edit)
+        editItem?.isVisible = false
+
+        // Change Add icon to Checkmark for confirmation
         val confirmAddEditAlarm = menu?.findItem(R.id.action_add)
         confirmAddEditAlarm?.setIcon(R.drawable.check_24px)
+        // Optional: Change title for clarity
+        confirmAddEditAlarm?.title = "Confirm" 
 
         return true
     }
@@ -373,5 +406,14 @@ class AlarmActivity : AppCompatActivity() {
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    // Function to apply FULL theme based on SharedPreferences (copied from KlockActivity)
+    private fun applyAppTheme() {
+        val sharedPreferences: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        // Read the saved theme *Resource ID*
+        // Make sure ProfileActivity constants are accessible here
+        val themeResId = sharedPreferences.getInt(ProfileActivity.PREF_KEY_THEME_ID, ProfileActivity.THEME_DEFAULT_ID)
+        setTheme(themeResId) // Apply the chosen FULL theme
     }
 }

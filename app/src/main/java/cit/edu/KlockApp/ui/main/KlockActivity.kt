@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
@@ -25,6 +26,9 @@ import cit.edu.KlockApp.ui.main.alarm.AlarmFragment
 import cit.edu.KlockApp.ui.main.worldClock.WorldClockFragment
 import cit.edu.KlockApp.ui.settings.SettingsActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.appbar.MaterialToolbar
+import androidx.preference.PreferenceManager
+import cit.edu.KlockApp.ProfileActivity
 
 class KlockActivity : AppCompatActivity() {
 
@@ -38,12 +42,19 @@ class KlockActivity : AppCompatActivity() {
     private var shouldShowSettings: Boolean = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Apply FULL theme from prefs BEFORE super.onCreate()
+        applyAppTheme()
+
         super.onCreate(savedInstanceState)
 
         requestFirstRunPermissions()
 
         binding = ActivityKlockBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Find the Toolbar and set it as the ActionBar
+        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar_klock)
+        setSupportActionBar(toolbar)
 
         val navView: BottomNavigationView = binding.navView
 
@@ -88,19 +99,45 @@ class KlockActivity : AppCompatActivity() {
                 true
             }
             R.id.action_add -> {
+                val navController = findNavController(R.id.nav_host_fragment_activity_klock)
+                // First, check if the current destination is the Alarm fragment
+                if (navController.currentDestination?.id == R.id.navigation_alarm) {
+                    // If it is, try to get the fragment instance
+                    val navHostFragment =
+                        supportFragmentManager.findFragmentById(R.id.nav_host_fragment_activity_klock)
+                    val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
+                    if (currentFragment is AlarmFragment) {
+                        Log.d("KlockActivity", "Add action: Calling launchAddAlarm on AlarmFragment")
+                        currentFragment.launchAddAlarm() // Call the public method
+                        true // Handled
+                    } else {
+                        Log.w("KlockActivity", "Add action: Current destination is Alarm, but fragment is not AlarmFragment instance?")
+                        super.onOptionsItemSelected(item) // Fallback
+                    }
+                } else if (navController.currentDestination?.id == R.id.navigation_worldClock) {
+                    // Handle World Clock add separately (or combine if logic is identical)
+                     val navHostFragment =
+                        supportFragmentManager.findFragmentById(R.id.nav_host_fragment_activity_klock)
+                     val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
+                     if (currentFragment is WorldClockFragment) {
+                         currentFragment.showTimeZoneSelector()
+                         true // Handled
+                     } else {
+                         super.onOptionsItemSelected(item) // Fallback
+                     }
+                } else {
+                     super.onOptionsItemSelected(item) // Not handled here
+                }
+            }
+            R.id.action_edit -> {
                 val navHostFragment =
                     supportFragmentManager.findFragmentById(R.id.nav_host_fragment_activity_klock)
                 val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
-
-                when (currentFragment) {
-                    is WorldClockFragment -> {
-                        currentFragment.showTimeZoneSelector()
-                        true
-                    }
-                    is AlarmFragment -> {
-                        false
-                    }
-                    else -> super.onOptionsItemSelected(item)
+                if (currentFragment is WorldClockFragment) {
+                    currentFragment.toggleEditMode()
+                    true
+                } else {
+                    super.onOptionsItemSelected(item)
                 }
             }
             else -> super.onOptionsItemSelected(item)
@@ -113,14 +150,12 @@ class KlockActivity : AppCompatActivity() {
         val navController = findNavController(R.id.nav_host_fragment_activity_klock)
         val currentDestinationId = navController.currentDestination?.id
 
-        val showAddButton = when (currentDestinationId) {
-            R.id.navigation_worldClock, R.id.navigation_alarm -> true // Show for World Clock and Alarm
-            else -> false // Hide for others (Stopwatch, Timer, etc.)
-        }
+        val showAddButton = currentDestinationId == R.id.navigation_worldClock || currentDestinationId == R.id.navigation_alarm
+        val showEditButton = currentDestinationId == R.id.navigation_worldClock // Only show Edit for World Clock
 
         menu?.findItem(R.id.action_add)?.isVisible = showAddButton
-        // Keep existing settings logic if needed, otherwise remove the shouldShowSettings logic
-        menu?.findItem(R.id.action_settings)?.isVisible = true // Assuming settings should always be visible now
+        menu?.findItem(R.id.action_edit)?.isVisible = showEditButton // Control Edit button visibility
+        menu?.findItem(R.id.action_settings)?.isVisible = true // Settings always visible
 
         return super.onPrepareOptionsMenu(menu)
     }
@@ -159,6 +194,14 @@ class KlockActivity : AppCompatActivity() {
             // Remember we asked already
             prefs.edit().putBoolean(FIRST_RUN_KEY, true).apply()
         }
+    }
+
+    // Function to apply FULL theme based on SharedPreferences
+    private fun applyAppTheme() {
+        val sharedPreferences: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        // Read the saved theme *Resource ID*
+        val themeResId = sharedPreferences.getInt(ProfileActivity.PREF_KEY_THEME_ID, ProfileActivity.THEME_DEFAULT_ID)
+        setTheme(themeResId) // Apply the chosen FULL theme
     }
 
 }

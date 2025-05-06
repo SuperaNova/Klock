@@ -90,6 +90,20 @@
         app:layout_constraintStart_toStartOf="@id/pickerSeconds"
         app:layout_constraintEnd_toEndOf="@id/pickerSeconds"/>
 
+    <!-- Add Alarm Sound Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/timerSoundButton"
+        style="@style/Widget.MaterialComponents.Button.TextButton" 
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Timer Sound" 
+        android:layout_marginTop="8dp"
+        app:icon="@drawable/ic_volume_up_24" 
+        app:iconGravity="textStart"
+        app:layout_constraintTop_toBottomOf="@id/pickerSeconds"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5" />
 
     <!-- Timer Running/Paused Group (Visible when Running/Paused) -->
     <androidx.constraintlayout.widget.Group

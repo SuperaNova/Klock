@@ -35,6 +35,16 @@ import java.util.Locale
 import androidx.recyclerview.widget.ItemTouchHelper
 import cit.edu.KlockApp.ui.util.OnItemMoveListener
 import cit.edu.KlockApp.ui.util.SimpleItemTouchHelperCallback
+import android.app.Activity
+import android.content.Intent
+import android.media.RingtoneManager
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
+import android.provider.MediaStore
+import android.app.AlertDialog
+import android.graphics.drawable.ColorDrawable
+import android.os.Handler
+import android.os.Looper
 
 class TimerFragment : Fragment(), OnItemMoveListener {
 
@@ -46,17 +56,15 @@ class TimerFragment : Fragment(), OnItemMoveListener {
     private var presetItemTouchHelper: ItemTouchHelper? = null
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
+        inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View {
+    ): View? {
         _binding = FragmentTimerBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         setupNumberPickers()
         setupButtons()
         setupPresetRecyclerView()
@@ -76,20 +84,25 @@ class TimerFragment : Fragment(), OnItemMoveListener {
         binding.pickerMinutes.setFormatter(formatter)
         binding.pickerSeconds.setFormatter(formatter)
 
-        binding.pickerHours.value = 0
-        binding.pickerMinutes.value = 0
-        binding.pickerSeconds.value = 1
+        val initialMillis = viewModel.remainingTimeMillis.value ?: 0L
+        updatePickersFromMillis(initialMillis.takeIf { it > 0 } ?: 1000L)
 
-        // Listener to enforce minimum 1 second
         val listener = NumberPicker.OnValueChangeListener { _, _, _ ->
             if (binding.pickerHours.value == 0 && binding.pickerMinutes.value == 0 && binding.pickerSeconds.value == 0) {
-                // Use postDelayed to introduce a slight delay before correcting
                 binding.pickerSeconds.postDelayed({ 
-                    // Double-check the condition still holds after the delay
                     if (binding.pickerHours.value == 0 && binding.pickerMinutes.value == 0 && binding.pickerSeconds.value == 0) {
                          binding.pickerSeconds.value = 1 
                     }
-                }, 150) // Delay in milliseconds (e.g., 150ms)
+                }, 150) 
+            }
+            if (viewModel.state.value == TimerState.IDLE) {
+                 val hours = binding.pickerHours.value
+                 val minutes = binding.pickerMinutes.value
+                 val seconds = binding.pickerSeconds.value
+                 val durationMillis = TimeUnit.HOURS.toMillis(hours.toLong()) +
+                                      TimeUnit.MINUTES.toMillis(minutes.toLong()) +
+                                      TimeUnit.SECONDS.toMillis(seconds.toLong())
+                 viewModel.setInitialDuration(durationMillis.coerceAtLeast(1000L))
             }
         }
 
@@ -99,119 +112,80 @@ class TimerFragment : Fragment(), OnItemMoveListener {
     }
 
     private fun setupButtons() {
-        binding.startPauseButton.setOnClickListener {
-            val currentState = viewModel.state.value
-            if (currentState == TimerState.IDLE) {
-                val hours = binding.pickerHours.value
-                val minutes = binding.pickerMinutes.value
-                val seconds = binding.pickerSeconds.value
-                val durationMillis = java.util.concurrent.TimeUnit.HOURS.toMillis(hours.toLong()) +
-                                     java.util.concurrent.TimeUnit.MINUTES.toMillis(minutes.toLong()) +
-                                     java.util.concurrent.TimeUnit.SECONDS.toMillis(seconds.toLong())
-
-                var finalDurationMillis = durationMillis
-                if (finalDurationMillis <= 0) {
-                    // If duration is 0, force it to 1 second
-                    finalDurationMillis = 1000L
-                }
-                viewModel.setInitialDuration(finalDurationMillis)
-                viewModel.startTimer()
-            } else {
-                when (currentState) {
-                    TimerState.RUNNING -> viewModel.pauseTimer()
-                    TimerState.PAUSED -> viewModel.startTimer()
-                    TimerState.FINISHED -> { viewModel.resetTimer() }
-                    else -> {}
-                }
-            }
-        }
-
-        binding.cancelButton.setOnClickListener {
-            viewModel.resetTimer()
-        }
+        binding.startPauseButton.setOnClickListener { startTimer() }
+        binding.cancelButton.setOnClickListener { cancelTimer() }
+        binding.timerSoundButton.setOnClickListener { showTimerSoundDialog() }
     }
 
     private fun setupPresetRecyclerView() {
         presetAdapter = TimerPresetAdapter(
-            onPresetClick = { preset ->
-                if (viewModel.state.value == TimerState.IDLE) {
-                    updatePickersFromMillis(preset.durationMillis)
-                } else {
-                    Toast.makeText(context, "Stop the current timer to use a preset", Toast.LENGTH_SHORT).show()
-                }
-            },
-            onAddClick = {
-                Log.d("TimerFragment", "Add preset button clicked")
-                try {
-                    val action = TimerFragmentDirections.actionTimerFragmentToAddEditPresetFragment(null)
-                    findNavController().navigate(action)
-                    Log.d("TimerFragment", "Navigation action triggered")
-                } catch (e: Exception) {
-                    Log.e("TimerFragment", "Navigation failed", e)
-                    Toast.makeText(context, "Error navigating. Please try again.", Toast.LENGTH_SHORT).show()
-                }
-            },
-            onPresetLongClick = { preset ->
-                showDeleteConfirmationDialog(preset)
-            }
+             onPresetClick = { preset ->
+                 if (viewModel.state.value == TimerState.IDLE) {
+                     viewModel.setInitialDuration(preset.durationMillis)
+                     updatePickersFromMillis(preset.durationMillis)
+                 } else {
+                     Toast.makeText(context, "Stop the current timer to use a preset", Toast.LENGTH_SHORT).show()
+                 }
+             },
+             onAddClick = {
+                 Log.d("TimerFragment", "Add preset button clicked")
+                 try {
+                     val action = TimerFragmentDirections.actionTimerFragmentToAddEditPresetFragment(null)
+                     findNavController().navigate(action)
+                 } catch (e: Exception) {
+                     Log.e("TimerFragment", "Navigation failed", e)
+                 }
+             },
+             onPresetLongClick = { preset ->
+                 showDeleteConfirmationDialog(preset)
+             }
         )
-
-        binding.presetsRecyclerView.apply {
-            adapter = presetAdapter
-            setHasFixedSize(true)
-        }
-
-        // Setup ItemTouchHelper for presets
-        val callback = SimpleItemTouchHelperCallback(this)
-        presetItemTouchHelper = ItemTouchHelper(callback)
+        binding.presetsRecyclerView.adapter = presetAdapter
+        binding.presetsRecyclerView.layoutManager = GridLayoutManager(requireContext(), 3)
+        presetItemTouchHelper = ItemTouchHelper(SimpleItemTouchHelperCallback(this))
         presetItemTouchHelper?.attachToRecyclerView(binding.presetsRecyclerView)
     }
 
     private fun observeViewModel() {
-        viewModel.formattedTime.observe(viewLifecycleOwner) { time ->
-            binding.timerDigitalDisplay.text = time
+        viewModel.formattedTime.observe(viewLifecycleOwner) { formattedTime ->
+             binding.timerDigitalDisplay.text = formattedTime
         }
-
         viewModel.progressPercentage.observe(viewLifecycleOwner) { progress ->
             binding.timerProgressCircle.progress = progress
         }
-
         viewModel.state.observe(viewLifecycleOwner) { state ->
-            updateUI(state)
+            updateUI(state ?: TimerState.IDLE)
         }
-
         viewModel.endTimeMillis.observe(viewLifecycleOwner) { endTimeMillis ->
-            if (endTimeMillis != null) {
-                val context = requireContext()
-                val is24Hour = DateFormat.is24HourFormat(context)
-                val pattern = if (is24Hour) "HH:mm" else "h:mm a"
-                val sdf = SimpleDateFormat(pattern, Locale.getDefault())
-                
-                val formattedEndTime = sdf.format(Date(endTimeMillis))
-                binding.timerEndTimeText.text = getString(R.string.timer_ends_at, formattedEndTime)
-                binding.timerEndTimeText.isVisible = true
-            } else {
-                binding.timerEndTimeText.isVisible = false
-                binding.timerEndTimeText.text = null
-            }
+             if (endTimeMillis != null && viewModel.state.value == TimerState.RUNNING) {
+                 val context = requireContext()
+                 val is24Hour = DateFormat.is24HourFormat(context)
+                 val pattern = if (is24Hour) "HH:mm" else "h:mm a"
+                 val sdf = SimpleDateFormat(pattern, Locale.getDefault())
+                 val formattedEndTime = sdf.format(Date(endTimeMillis))
+                 binding.timerEndTimeText.text = getString(R.string.timer_ends_at, formattedEndTime)
+                 binding.timerEndTimeText.isVisible = true
+             } else {
+                 binding.timerEndTimeText.isVisible = false
+                 binding.timerEndTimeText.text = null
+             }
         }
-
         viewModel.presets.observe(viewLifecycleOwner) { presets ->
-            presetAdapter.submitList(presets ?: emptyList())
+            presetAdapter.submitList(presets)
+        }
+         viewModel.timerSoundUri.observe(viewLifecycleOwner) { uriString ->
+            val uri = if (uriString.isNullOrEmpty()) null else Uri.parse(uriString)
+            updateSoundButtonText(uri)
         }
     }
 
     private fun updateUI(state: TimerState) {
         val isIdle = state == TimerState.IDLE
-        val isRunning = state == TimerState.RUNNING
-        val isPaused = state == TimerState.PAUSED
-        val isFinished = state == TimerState.FINISHED
-
         binding.groupTimerSetup.isVisible = isIdle
         binding.groupTimerRunning.isVisible = !isIdle
 
-        // Hide presets RecyclerView if timer is not idle
         binding.presetsRecyclerView.isVisible = isIdle
+        binding.timerSoundButton.isVisible = isIdle
 
         binding.cancelButton.isVisible = !isIdle
         binding.cancelButton.isEnabled = !isIdle
@@ -220,41 +194,98 @@ class TimerFragment : Fragment(), OnItemMoveListener {
             TimerState.IDLE -> {
                 binding.startPauseButton.text = getString(R.string.start)
                 binding.startPauseButton.isEnabled = true
-                binding.startPauseButton.setBackgroundColor(getThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
                 binding.cancelButton.isVisible = false
+                updatePickersFromMillis(1000L)
             }
             TimerState.RUNNING -> {
                 binding.startPauseButton.text = getString(R.string.pause)
                 binding.startPauseButton.isEnabled = true
-                binding.startPauseButton.setBackgroundColor(getThemeColor(requireContext(), com.google.android.material.R.attr.colorSecondary))
             }
             TimerState.PAUSED -> {
                 binding.startPauseButton.text = getString(R.string.resume)
                 binding.startPauseButton.isEnabled = true
-                binding.startPauseButton.setBackgroundColor(getThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
             }
             TimerState.FINISHED -> {
                 binding.startPauseButton.text = getString(R.string.reset)
                 binding.startPauseButton.isEnabled = true
-                binding.startPauseButton.setBackgroundColor(getThemeColor(requireContext(), com.google.android.material.R.attr.colorPrimary))
                 binding.cancelButton.isVisible = false
-                Toast.makeText(context, "Timer Finished!", Toast.LENGTH_LONG).show()
+                // Trigger visual effect
+                triggerFinishVisuals()
             }
         }
     }
 
-    @ColorInt
-    fun getThemeColor(@AttrRes attrRes: Int): Int {
-        val typedValue = TypedValue()
-        requireContext().theme.resolveAttribute(attrRes, typedValue, true)
-        return typedValue.data
+    private fun startTimer() {
+        val currentState = viewModel.state.value
+        if (currentState == TimerState.IDLE) {
+            val hours = binding.pickerHours.value
+            val minutes = binding.pickerMinutes.value
+            val seconds = binding.pickerSeconds.value
+            val durationMillis = TimeUnit.HOURS.toMillis(hours.toLong()) +
+                                TimeUnit.MINUTES.toMillis(minutes.toLong()) +
+                                TimeUnit.SECONDS.toMillis(seconds.toLong())
+
+            if (durationMillis <= 0) {
+                Toast.makeText(context, "Please set a duration > 0", Toast.LENGTH_SHORT).show()
+                return
+            }
+            viewModel.setInitialDuration(durationMillis)
+            viewModel.startTimer()
+        } else if (currentState == TimerState.PAUSED) {
+            viewModel.startTimer()
+        } else if (currentState == TimerState.FINISHED) {
+            viewModel.resetTimer()
+            updatePickersFromMillis(1000L)
+        }
     }
 
-    @ColorInt
-    private fun getThemeColor(context: Context, @AttrRes colorAttr: Int): Int {
-        val typedValue = TypedValue()
-        context.theme.resolveAttribute(colorAttr, typedValue, true)
-        return typedValue.data
+    private fun cancelTimer() {
+        viewModel.resetTimer()
+    }
+
+    private fun showTimerSoundDialog() {
+        val context = requireContext()
+        val ringtoneManager = RingtoneManager(context)
+        ringtoneManager.setType(RingtoneManager.TYPE_ALARM or RingtoneManager.TYPE_NOTIFICATION or RingtoneManager.TYPE_RINGTONE)
+
+        val cursor = try { ringtoneManager.cursor } catch (e: Exception) { /*...*/ return }
+
+        val soundTitles = mutableListOf<String>()
+        val soundUris = mutableListOf<Uri>()
+
+        try {
+            while (cursor.moveToNext()) {
+                val title = cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX) ?: "Unknown Sound"
+                val uri = ringtoneManager.getRingtoneUri(cursor.position)
+                soundTitles.add(title)
+                soundUris.add(uri)
+            }
+        } catch (e: Exception) { Log.e("TimerFragment", "Error reading cursor", e) } finally { cursor.close() }
+
+        val currentUriString = viewModel.timerSoundUri.value
+        val currentUri = if (!currentUriString.isNullOrEmpty()) Uri.parse(currentUriString) else RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        var selectedIndex = soundUris.indexOfFirst { it == currentUri }.takeIf { it >= 0 } ?: 0
+
+        AlertDialog.Builder(context)
+            .setTitle("Select Timer Sound")
+            .setSingleChoiceItems(soundTitles.toTypedArray(), selectedIndex) { _, which -> selectedIndex = which }
+            .setPositiveButton("OK") { _, _ ->
+                val selectedUri = if (selectedIndex >= 0 && selectedIndex < soundUris.size) soundUris[selectedIndex] else null
+                viewModel.setTimerSound(selectedUri)
+                updateSoundButtonText(selectedUri)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun updateTimerDisplay(timer: String) {
+        binding.timerDigitalDisplay.text = timer
+    }
+
+    private fun updateSoundButtonText(uri: Uri?) {
+        val ringtone = if (uri != null) RingtoneManager.getRingtone(context, uri) else null
+        val name = ringtone?.getTitle(context) ?: "Default"
+        binding.timerSoundButton.text = "Sound: $name"
     }
 
     private fun updatePickersFromMillis(durationMillis: Long) {
@@ -278,12 +309,40 @@ class TimerFragment : Fragment(), OnItemMoveListener {
             .show()
     }
 
-    // Implementation for preset moving
     override fun onItemMove(fromPosition: Int, toPosition: Int) {
-        // Filter out the "Add" button if it's part of the adapter's list
-        // Check if adapter handles the placeholder item differently, adjust if needed.
-        // Assuming the real items are moved and the ViewModel knows the correct indices.
         viewModel.movePreset(fromPosition, toPosition)
+    }
+
+    // Function to trigger visual effect on finish
+    private fun triggerFinishVisuals() {
+        // Get current theme colors
+        val highlightColor = getThemeColor(requireContext(), com.google.android.material.R.attr.colorError) // Use error color for flash
+        val originalBackground = binding.root.background
+        val originalBackgroundColor = if (originalBackground is ColorDrawable) {
+             originalBackground.color
+        } else {
+             // Fallback: get windowBackground from theme if root background is not a solid color
+             getThemeColor(requireContext(), android.R.attr.windowBackground)
+        }
+
+        // Flash background briefly
+        binding.root.setBackgroundColor(highlightColor)
+        Handler(Looper.getMainLooper()).postDelayed({
+            // Check if binding is still valid before resetting background
+            _binding?.root?.setBackgroundColor(originalBackgroundColor)
+            // If original was not a color, might need to set it back explicitly
+            // if (originalBackground !is ColorDrawable) {
+            //    _binding?.root?.background = originalBackground 
+            // }
+        }, 500) // Flash duration in milliseconds
+    }
+
+    // Add back the theme color resolver needed by triggerFinishVisuals
+    @ColorInt
+    private fun getThemeColor(context: Context, @AttrRes colorAttr: Int): Int {
+        val typedValue = TypedValue()
+        context.theme.resolveAttribute(colorAttr, typedValue, true)
+        return typedValue.data
     }
 
     override fun onDestroyView() {

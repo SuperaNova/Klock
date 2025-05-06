@@ -1,106 +1,125 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
+<androidx.constraintlayout.widget.ConstraintLayout 
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/scrollView1"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:background="?attr/colorSurface"
+    tools:context=".AboutUsActivity">
 
-    <LinearLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/eggshell_white"
-        android:padding="10dp"
-        tools:context=".AboutUsActivity">
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_about"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimarySurface"
+        app:title="About Klock"
+        app:titleTextColor="?attr/colorOnPrimarySurface"
+        app:navigationIcon="@drawable/arrowleft" 
+        app:navigationIconTint="?attr/colorOnPrimarySurface"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="left"
-            android:orientation="horizontal"
-            android:padding="10dp">
-
-            <ImageButton
-                android:backgroundTint="@color/eggshell_white"
-                android:id="@+id/back_button"
-                android:layout_width="36dp"
-                android:layout_height="match_parent"
-                android:layout_margin="0dp"
-                android:layout_weight="0.2"
-                android:padding="0dp"
-                android:src="@drawable/arrowleft"/>
-
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="0.8"
-                android:gravity="center"
-                android:text="About Us"
-                android:textAlignment="center"
-                android:textStyle="bold"
-                android:textSize="25dp"
-                android:paddingBottom="13dp"
-                android:paddingTop="12dp"
-                android:textColor="@color/oxford_blue"
-                android:fontFamily="sans-serif">
-
-            </TextView>
-        </LinearLayout>
-
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toBottomOf="@id/toolbar_about"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
-            android:background="@drawable/border"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:orientation="horizontal"
-            >
-            <ImageView
+            android:orientation="vertical"
+            android:padding="16dp">
 
-                android:src="@drawable/person"
-                android:layout_width="100dp"
-                android:layout_height="150dp"
-                android:layout_gravity="center">
-            </ImageView>
+            <!-- App Info -->
+            <ImageView
+                android:id="@+id/image_app_logo"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
+                android:contentDescription="@string/app_name"
+                android:src="@mipmap/ic_launcher_round" /> 
+
             <TextView
+                android:id="@+id/text_app_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp"
+                android:text="@string/app_name" 
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
+                android:textColor="?android:attr/textColorPrimary" />
+
+            <TextView
+                android:id="@+id/text_app_version"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="16dp"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                android:textColor="?android:attr/textColorSecondary"
+                tools:text="Version 1.0.0" />
+
+            <!-- Description -->
+            <TextView
+                android:id="@+id/text_app_description"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="Jared Acebes"
-                android:textStyle="bold"
-                android:textSize="36dp"
-                android:textColor="@color/oxford_blue"
-                android:fontFamily="serif">
-            </TextView>
-        </LinearLayout>
+                android:layout_marginTop="16dp"
+                android:text="Klock is your reliable companion for managing time across the globe. Set alarms, track time with the stopwatch, manage timers, and stay punctual with our intuitive world clock feature. Designed to be simple, elegant, and accurate."
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                android:textColor="?android:attr/textColorPrimary" />
 
-        <LinearLayout
-            android:background="@drawable/border"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:orientation="horizontal">
-            <ImageView
-                android:src="@drawable/person"
-                android:layout_width="100dp"
-                android:layout_height="150dp"
-                android:layout_gravity="center">
-            </ImageView>
+            <!-- Developers -->
             <TextView
+                android:id="@+id/text_developed_by_header"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="Developed By"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+                android:textColor="?android:attr/textColorPrimary" />
+
+            <TextView
+                android:id="@+id/text_developer_names"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Jared Acebes, Romar Alaman"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                android:textColor="?android:attr/textColorPrimary" />
+            
+            <View 
+                 android:layout_width="match_parent"
+                 android:layout_height="0dp"
+                 android:layout_weight="1"/> 
+
+            <!-- Links (REMOVED) -->
+            <!--
+            <Button
+                android:id="@+id/button_privacy"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="Romar Alaman"
-                android:textStyle="bold"
-                android:textSize="36dp"
-                android:textColor="@color/oxford_blue"
-                android:fontFamily="serif">
-            </TextView>
+                android:layout_marginTop="24dp"
+                android:text="Privacy Policy" />
+
+            <Button
+                android:id="@+id/button_licenses"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Open Source Licenses" />
+            -->
+
         </LinearLayout>
-    </LinearLayout>
-</ScrollView>
+
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
