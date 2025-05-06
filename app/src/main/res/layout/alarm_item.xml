@@ -132,21 +132,91 @@
             app:layout_constraintBottom_toBottomOf="parent"
             tools:visibility="visible">
 
+            <TextView
+                android:id="@+id/alarmChangeTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Adjust Time"
+                android:clickable="true"
+                android:background="@null"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp"
+                android:drawablePadding="8dp"/>
+
+            <TextView
+                android:id="@+id/alarmChangeLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Rename Label"
+                android:clickable="true"
+                android:background="@null"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp"
+                android:drawablePadding="8dp"/>
+
+
             <com.google.android.material.button.MaterialButtonToggleGroup
                 android:id="@+id/toggle_button_group"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8sp"
                 app:selectionRequired="false"
                 app:singleSelection="false">
-                <!-- Buttons S, M, T, W, T, F, S -->
-                <Button style="@style/Widget.App.MaterialButton.Toggle" android:id="@+id/button_sunday" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="S"/>
-                <Button style="@style/Widget.App.MaterialButton.Toggle" android:id="@+id/button_monday" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="M"/>
-                <Button style="@style/Widget.App.MaterialButton.Toggle" android:id="@+id/button_tuesday" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="T"/>
-                <Button style="@style/Widget.App.MaterialButton.Toggle" android:id="@+id/button_wednesday" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="W"/>
-                <Button style="@style/Widget.App.MaterialButton.Toggle" android:id="@+id/button_thursday" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="T"/>
-                <Button style="@style/Widget.App.MaterialButton.Toggle" android:id="@+id/button_friday" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="F"/>
-                <Button style="@style/Widget.App.MaterialButton.Toggle" android:id="@+id/button_saturday" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="S"/>
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.App.MaterialButton.Toggle"
+                    android:id="@+id/button_sunday"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="S" />
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.App.MaterialButton.Toggle"
+                    android:id="@+id/button_monday"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="M" />
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.App.MaterialButton.Toggle"
+                    android:id="@+id/button_tuesday"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="T" />
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.App.MaterialButton.Toggle"
+                    android:id="@+id/button_wednesday"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="W" />
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.App.MaterialButton.Toggle"
+                    android:id="@+id/button_thursday"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="T" />
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.App.MaterialButton.Toggle"
+                    android:id="@+id/button_friday"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="F" />
+
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.App.MaterialButton.Toggle"
+                    android:id="@+id/button_saturday"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="S" />
             </com.google.android.material.button.MaterialButtonToggleGroup>
 
             <!-- Ringtone -->
@@ -160,20 +230,8 @@
                 android:drawablePadding="8dp"
                 app:drawableStartCompat="@drawable/ic_notifications_black_24dp" />
 
-            <!-- Vibrate -->
 
 
-            <!-- Label -->
-            <TextView
-                android:id="@+id/alarmChangeLabel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Change Label Name"
-                android:clickable="true"
-                android:background="@null"
-                android:paddingTop="16dp"
-                android:paddingBottom="16dp"
-                android:drawablePadding="8dp"/>
 
             <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/vibrateCheckbox"
@@ -182,16 +240,6 @@
                 android:layout_marginTop="8sp"
                 android:text="Vibrate while Ringing"/>
             <!-- Delete Button -->
-            <Button
-                android:id="@+id/deleteButton"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="start"
-                android:text="Delete"
-                android:textColor="?attr/colorError"
-                app:icon="@android:drawable/ic_menu_delete"
-                app:iconTint="?attr/colorError" />
 
         </LinearLayout>
 

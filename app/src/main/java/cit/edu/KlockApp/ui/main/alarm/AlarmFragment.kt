@@ -59,25 +59,43 @@ class AlarmFragment : Fragment() {
         ).get(AlarmViewModel::class.java)
 
         adapter = AlarmAdapter(
-            onToggleEnabled = { alarm -> vm.updateAlarm(alarm) },
-            onDelete        = { alarm ->
-                vm.deleteAlarm(alarm)
-                Toast.makeText(requireContext(),
-                    "${alarm.label} deleted", Toast.LENGTH_SHORT).show()
+            // Inside your AlarmFragment
+            onToggleEnabled = { updated ->
+                // When toggling 'isEnabled', make sure only that property is updated
+                val currentList = vm.alarms.value?.map {
+                    if (it.id == updated.id) updated else it
+                }
+                if (currentList != null) {
+                    vm._alarms.value = currentList
+                    Toast.makeText(requireContext(), "Alarm ${if (updated.isEnabled) "enabled" else "disabled"}", Toast.LENGTH_SHORT).show()
+                }
             },
             onExpandToggled = { alarm ->
-                // toggle expanded flag on the one clicked
                 val newList = vm.alarms.value!!.map {
-                    it.copy(isExpanded = it.id == alarm.id && !it.isExpanded)
+                    if (it.id == alarm.id) {
+                        it.copy(isExpanded = !alarm.isExpanded) // Toggle only the selected alarm's expanded state
+                    } else {
+                        it // Leave others unchanged
+                    }
                 }
-                vm._alarms.value = newList
+                vm._alarms.value = newList // Update the list without affecting isExpanded of other alarms
             },
-            onLabelChanged     = { alarm ->
-                vm.updateAlarm(alarm)
-                Toast.makeText(requireContext(),
-                    "Label changed to “${alarm.label}”",
-                    Toast.LENGTH_SHORT
-                ).show()
+            onLabelChanged = { updated ->
+                val newList = vm.alarms.value?.map {
+                    if (it.id == updated.id) updated else it
+                }
+                if (newList != null) {
+                    vm._alarms.value = newList
+                    Toast.makeText(requireContext(),
+                        "Label changed to “${updated.label}”", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onAlarmTimeAdjust = { updated ->
+                vm.updateAlarm(updated.copy(isExpanded = true))
+            },
+            onVibrateToggle = { updated ->
+                val updatedAlarm = updated.copy(isExpanded = updated.isExpanded) // Retain the current 'isExpanded' state
+                vm.updateAlarm(updatedAlarm)
             }
 
         )
@@ -122,7 +140,13 @@ class AlarmFragment : Fragment() {
     }
 
     override fun onDestroyView() {
-        super.onDestroyView()
+        // Collapse all alarms before fragment is destroyed
+        vm.alarms.value?.let { alarmList ->
+            val collapsedList = alarmList.map { it.copy(isExpanded = false) }
+            collapsedList.forEach { vm.updateAlarm(it) }
+        }
+
         _binding = null
+        super.onDestroyView()
     }
 }

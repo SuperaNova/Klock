@@ -9,7 +9,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -44,12 +43,7 @@ class AlarmActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_alarm)
-        // Choose the layout based on whether you're creating or editing the alarm
-        if (intent.hasExtra("alarm")) {
-            supportActionBar?.title = "Edit Alarm"
-        } else {
-            supportActionBar?.title = "Create Alarm"
-        }
+        supportActionBar?.title = "Create Alarm"
 
         // Enable the "up button" (back button) in the ActionBar
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -61,8 +55,6 @@ class AlarmActivity : AppCompatActivity() {
         initializeViews()
         setupSnoozeSpinner()
         setupRepeatDialog()
-
-
     }
 
     // Abstract function for initializing alarm

@@ -62,7 +62,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun saveAlarms(alarms: List<Alarm>) {
         try {
-            val serialized = json.encodeToString(alarms)
+            val serialized = json.encodeToString(alarms) // Do not modify 'isExpanded'
             prefs.edit().putString(ALARMS_KEY, serialized).apply()
             Log.d("AlarmViewModel", "Saved alarms: $serialized")
         } catch (e: Exception) {
@@ -92,10 +92,14 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
 
         if (idx >= 0) {
             val oldAlarm = current[idx]
-            if (oldAlarm != updated) {  // Only update if the alarm actually changed
-                current[idx] = updated
-                _alarms.value = current
-                saveAlarms(current)
+            if (oldAlarm != updated) {
+                // Preserve the old values for unchanged fields, such as 'isExpanded', etc.
+                current[idx] = updated.copy(
+                    isExpanded = oldAlarm.isExpanded,  // Preserve expanded state
+                    vibrateOnAlarm = oldAlarm.vibrateOnAlarm  // Preserve vibrateOnAlarm state
+                )
+                _alarms.value = current  // Update the LiveData
+                saveAlarms(current)      // Save the updated alarms list
                 Log.d("AlarmViewModel", "Updated alarm: ${updated.id}")
             }
         } else {
@@ -105,6 +109,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
             Log.d("AlarmViewModel", "Added new alarm: ${updated.id}")
         }
     }
+
 
     fun deleteAlarm(alarm: Alarm) {
         val current = _alarms.value.orEmpty().toMutableList()
