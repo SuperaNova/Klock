@@ -29,7 +29,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
     private val ALARMS_KEY = "alarms_key"
     private val FIRST_LAUNCH_KEY = "first_launch_key"  // Flag to track first launch
 
-    private val _alarms = MutableLiveData<List<Alarm>>().apply {
+    internal val _alarms = MutableLiveData<List<Alarm>>().apply {
         value = loadAlarms()
     }
     val alarms: LiveData<List<Alarm>> = _alarms
@@ -81,7 +81,8 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
             label = "Wake Up",
             snoozeMinutes = 5,
             vibrateOnAlarm = true,
-            alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM).toString()
+            alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM).toString(),
+            isExpanded = false
         )
     }
 

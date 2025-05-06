@@ -98,8 +98,7 @@ class KlockActivity : AppCompatActivity() {
                         true
                     }
                     is AlarmFragment -> {
-                        currentFragment.launchAddAlarm()
-                        true
+                        false
                     }
                     else -> super.onOptionsItemSelected(item)
                 }
