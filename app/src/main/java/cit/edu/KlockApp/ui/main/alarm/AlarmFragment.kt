@@ -1,20 +1,16 @@
 package cit.edu.KlockApp.ui.main.alarm
 
 import android.app.Activity
-import android.app.AlarmManager
-import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.RectF
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -22,171 +18,107 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.FragmentAlarmBinding
-import cit.edu.KlockApp.ui.main.alarm.notificationManager.AlarmReceiver
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 class AlarmFragment : Fragment() {
     private var _binding: FragmentAlarmBinding? = null
-    private val binding get() = _binding!!
-    private lateinit var alarmViewModel: AlarmViewModel
-    private lateinit var adapter: AlarmRecyclerAdapter
+    private val b get() = _binding!!
+    private lateinit var vm: AlarmViewModel
+    private lateinit var adapter: AlarmAdapter
+
+    // 1️⃣ Register for create/edit Alarm results
+    private val alarmLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val alarm = result.data?.getParcelableExtra<Alarm>("updatedAlarm")
+            if (alarm != null) {
+                if (vm.alarms.value?.any { it.id == alarm.id } == true) {
+                    vm.updateAlarm(alarm)
+                    Toast.makeText(requireContext(),
+                        "${alarm.label} updated to ${alarm.time}", Toast.LENGTH_SHORT).show()
+                } else {
+                    vm.addAlarm(alarm)
+                    Toast.makeText(requireContext(),
+                        "${alarm.label} set to ${alarm.time}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
-        alarmViewModel = ViewModelProvider(
-            this,
-            ViewModelProvider.AndroidViewModelFactory(requireActivity().application)
+        _binding = FragmentAlarmBinding.inflate(inflater, container, false)
+        return b.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        vm = ViewModelProvider(
+            this, ViewModelProvider.AndroidViewModelFactory(requireActivity().application)
         ).get(AlarmViewModel::class.java)
 
-        _binding = FragmentAlarmBinding.inflate(inflater, container, false)
-        val view = binding.root
-
-        // Setup RecyclerView
-        val recycler = view.findViewById<RecyclerView>(R.id.alarmRecycler)
-        recycler.layoutManager = LinearLayoutManager(requireContext())
-        adapter = AlarmRecyclerAdapter(
-            alarms = alarmViewModel.alarms.value?.toMutableList() ?: mutableListOf(),
-            onItemClick = { alarm ->
-                // When clicking an alarm, pass a copy of it to avoid reference issues
-                val intent = Intent(requireContext(), AlarmActivity::class.java).apply {
-                    putExtra("alarm", alarm.copy())  // Ensure you're passing a copy
-                }
-                updateAlarmLauncher.launch(intent)
+        adapter = AlarmAdapter(
+            onToggleEnabled = { alarm -> vm.updateAlarm(alarm) },
+            onDelete        = { alarm ->
+                vm.deleteAlarm(alarm)
+                Toast.makeText(requireContext(),
+                    "${alarm.label} deleted", Toast.LENGTH_SHORT).show()
             },
-            onEnabledChange = { alarm ->
-                // Update alarm when the enabled status is changed
-                alarmViewModel.updateAlarm(alarm.copy())  // Ensure copy here too
+            onExpandToggled = { alarm ->
+                // toggle expanded flag on the one clicked
+                val newList = vm.alarms.value!!.map {
+                    it.copy(isExpanded = it.id == alarm.id && !it.isExpanded)
+                }
+                vm._alarms.value = newList
+            },
+            onLabelChanged     = { alarm ->
+                vm.updateAlarm(alarm)
+                Toast.makeText(requireContext(),
+                    "Label changed to “${alarm.label}”",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
+
         )
-        recycler.adapter = adapter
 
-        // Swipe-to-delete
-        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
-            private val paint = Paint().apply {
-                color = ContextCompat.getColor(requireContext(), R.color.red)
+        b.alarmRecycler.layoutManager = LinearLayoutManager(requireContext())
+        b.alarmRecycler.adapter        = adapter
+
+        // Swipe to delete
+        ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+            override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder,
+                                target: RecyclerView.ViewHolder) = false
+
+            override fun onSwiped(vh: RecyclerView.ViewHolder, direction: Int) {
+                val alarm = adapter.currentList[vh.adapterPosition]
+                vm.deleteAlarm(alarm)
+                Toast.makeText(requireContext(),
+                    "${alarm.label} deleted", Toast.LENGTH_SHORT).show()
             }
-            private val icon = ContextCompat.getDrawable(requireContext(), R.drawable.delete_24px)
-            private val iconW = icon?.intrinsicWidth ?: 0
-            private val iconH = icon?.intrinsicHeight ?: 0
+        }).attachToRecyclerView(b.alarmRecycler)
 
-            override fun onMove(
-                rv: RecyclerView,
-                vh: RecyclerView.ViewHolder,
-                target: RecyclerView.ViewHolder
-            ) = false
-
-            override fun onSwiped(vh: RecyclerView.ViewHolder, dir: Int) {
-                val pos = vh.adapterPosition
-                // Cancel the scheduled system alarm
-                val deleted = adapter.removeAt(pos)
-                val alarmManager = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
-                val cancelIntent = Intent(requireContext(), AlarmReceiver::class.java).apply {
-                    putExtra("ALARM_LABEL", deleted.label)
-                }
-                val pending = PendingIntent.getBroadcast(
-                    requireContext(),
-                    deleted.id,
-                    cancelIntent,
-                    PendingIntent.FLAG_IMMUTABLE
-                )
-                alarmManager.cancel(pending)
-
-                // Remove from ViewModel and notify user
-                alarmViewModel.deleteAlarm(deleted)
-                Toast.makeText(requireContext(), "${deleted.label} deleted", Toast.LENGTH_SHORT).show()
-            }
-
-            val swipeThreshold = 100f // Define a threshold for when to show the icon
-            val maxIconWidth = iconW.toFloat() // The full width of the icon
-
-            override fun onChildDraw(
-                c: Canvas,
-                rv: RecyclerView,
-                vh: RecyclerView.ViewHolder,
-                dX: Float,
-                dY: Float,
-                actionState: Int,
-                isActive: Boolean
-            ) {
-                val item = vh.itemView
-                val rect = RectF(
-                    item.right + dX, item.top.toFloat(), item.right.toFloat(), item.bottom.toFloat()
-                )
-
-                // Always show the red background when swiping left, regardless of threshold
-                if (dX < 0) {
-                    c.drawRect(rect, paint)
-                }
-
-                // Calculate how much of the trash icon should be shown
-                val iconWidth = when {
-                    dX < -swipeThreshold -> maxIconWidth // Show full icon if swipe is beyond threshold
-                    dX < 0 -> maxIconWidth * (-dX / swipeThreshold) // Show partial icon based on the swipe amount
-                    else -> 0f // No icon if swiped back to the right
-                }
-
-                // Ensure that the icon does not go past the edge of the item
-                val iconLeft = item.right - (item.height - iconH) / 2 - iconWidth
-                val iconRight = item.right - (item.height - iconH) / 2
-
-                // If the icon exceeds the bounds of the item, adjust it to stay within the right edge
-                val adjustedLeft = Math.max(iconLeft, item.right - (item.height - iconH) / 2 - maxIconWidth)
-                val adjustedRight = Math.min(iconRight, item.right - (item.height - iconH) / 2)
-
-                // Only draw the icon if there's any portion to show
-                if (iconWidth > 0) {
-                    val top = item.top + (item.height - iconH) / 2
-                    val bottom = top + iconH
-                    icon?.setBounds(adjustedLeft.toInt(), top.toInt(), adjustedRight.toInt(), bottom.toInt())
-                    icon?.draw(c)
-                }
-
-                super.onChildDraw(c, rv, vh, dX, dY, actionState, isActive)
-            }
-
-        })
-        itemTouchHelper.attachToRecyclerView(recycler)
-
-        // Observe LiveData with post to avoid layout conflicts
-        alarmViewModel.alarms.observe(viewLifecycleOwner) { alarms ->
-            recycler.post {
-                adapter.updateList(alarms)
-            }
+        // Observe LiveData
+        vm.alarms.observe(viewLifecycleOwner) { list ->
+            adapter.submitList(list.toList())
         }
 
-        return view
+        // Hook up your “+” menu item via fragment’s host activity’s onOptionsItemSelected
+        setHasOptionsMenu(true)
     }
 
-    private val updateAlarmLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.getParcelableExtra<Alarm>("updatedAlarm")?.let { updated ->
-                // Pass a copy of the alarm to ensure the ViewModel works with a new instance
-                alarmViewModel.updateAlarm(updated.copy())  // Using .copy() to avoid reference issues
-                val fmt = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
-            }
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.action_bar_menu, menu)
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
+        R.id.action_add -> {
+            val intent = Intent(requireContext(), AlarmActivity::class.java)
+            alarmLauncher.launch(intent)
+            true
         }
-    }
-
-    private val addAlarmLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.getParcelableExtra<Alarm>("updatedAlarm")?.let { newAlarm ->
-                // Ensure you're adding a copy of the alarm to avoid reference issues
-                alarmViewModel.addAlarm(newAlarm.copy())
-            }
-        }
-    }
-
-    fun launchAddAlarm() {
-        val intent = Intent(requireContext(), AlarmActivity::class.java)
-        addAlarmLauncher.launch(intent)
+        else -> super.onOptionsItemSelected(item)
     }
 
     override fun onDestroyView() {

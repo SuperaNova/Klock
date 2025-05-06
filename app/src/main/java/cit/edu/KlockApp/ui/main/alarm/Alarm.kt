@@ -17,5 +17,6 @@ data class Alarm(
     var isEnabled: Boolean,
     var snoozeMinutes: Int,
     var vibrateOnAlarm: Boolean,
-    var alarmSound: String
+    var alarmSound: String,
+    var isExpanded: Boolean
 ) : Parcelable
