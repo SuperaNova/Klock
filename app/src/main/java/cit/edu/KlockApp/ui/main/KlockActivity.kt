@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
@@ -98,19 +99,34 @@ class KlockActivity : AppCompatActivity() {
                 true
             }
             R.id.action_add -> {
-                val navHostFragment =
-                    supportFragmentManager.findFragmentById(R.id.nav_host_fragment_activity_klock)
-                val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
-
-                when (currentFragment) {
-                    is WorldClockFragment -> {
-                        currentFragment.showTimeZoneSelector()
-                        true
+                val navController = findNavController(R.id.nav_host_fragment_activity_klock)
+                // First, check if the current destination is the Alarm fragment
+                if (navController.currentDestination?.id == R.id.navigation_alarm) {
+                    // If it is, try to get the fragment instance
+                    val navHostFragment =
+                        supportFragmentManager.findFragmentById(R.id.nav_host_fragment_activity_klock)
+                    val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
+                    if (currentFragment is AlarmFragment) {
+                        Log.d("KlockActivity", "Add action: Calling launchAddAlarm on AlarmFragment")
+                        currentFragment.launchAddAlarm() // Call the public method
+                        true // Handled
+                    } else {
+                        Log.w("KlockActivity", "Add action: Current destination is Alarm, but fragment is not AlarmFragment instance?")
+                        super.onOptionsItemSelected(item) // Fallback
                     }
-                    is AlarmFragment -> {
-                        false
-                    }
-                    else -> super.onOptionsItemSelected(item)
+                } else if (navController.currentDestination?.id == R.id.navigation_worldClock) {
+                    // Handle World Clock add separately (or combine if logic is identical)
+                     val navHostFragment =
+                        supportFragmentManager.findFragmentById(R.id.nav_host_fragment_activity_klock)
+                     val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
+                     if (currentFragment is WorldClockFragment) {
+                         currentFragment.showTimeZoneSelector()
+                         true // Handled
+                     } else {
+                         super.onOptionsItemSelected(item) // Fallback
+                     }
+                } else {
+                     super.onOptionsItemSelected(item) // Not handled here
                 }
             }
             R.id.action_edit -> {

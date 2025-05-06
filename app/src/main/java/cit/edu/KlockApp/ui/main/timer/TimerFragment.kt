@@ -42,6 +42,9 @@ import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import android.provider.MediaStore
 import android.app.AlertDialog
+import android.graphics.drawable.ColorDrawable
+import android.os.Handler
+import android.os.Looper
 
 class TimerFragment : Fragment(), OnItemMoveListener {
 
@@ -206,6 +209,8 @@ class TimerFragment : Fragment(), OnItemMoveListener {
                 binding.startPauseButton.text = getString(R.string.reset)
                 binding.startPauseButton.isEnabled = true
                 binding.cancelButton.isVisible = false
+                // Trigger visual effect
+                triggerFinishVisuals()
             }
         }
     }
@@ -306,6 +311,38 @@ class TimerFragment : Fragment(), OnItemMoveListener {
 
     override fun onItemMove(fromPosition: Int, toPosition: Int) {
         viewModel.movePreset(fromPosition, toPosition)
+    }
+
+    // Function to trigger visual effect on finish
+    private fun triggerFinishVisuals() {
+        // Get current theme colors
+        val highlightColor = getThemeColor(requireContext(), com.google.android.material.R.attr.colorError) // Use error color for flash
+        val originalBackground = binding.root.background
+        val originalBackgroundColor = if (originalBackground is ColorDrawable) {
+             originalBackground.color
+        } else {
+             // Fallback: get windowBackground from theme if root background is not a solid color
+             getThemeColor(requireContext(), android.R.attr.windowBackground)
+        }
+
+        // Flash background briefly
+        binding.root.setBackgroundColor(highlightColor)
+        Handler(Looper.getMainLooper()).postDelayed({
+            // Check if binding is still valid before resetting background
+            _binding?.root?.setBackgroundColor(originalBackgroundColor)
+            // If original was not a color, might need to set it back explicitly
+            // if (originalBackground !is ColorDrawable) {
+            //    _binding?.root?.background = originalBackground 
+            // }
+        }, 500) // Flash duration in milliseconds
+    }
+
+    // Add back the theme color resolver needed by triggerFinishVisuals
+    @ColorInt
+    private fun getThemeColor(context: Context, @AttrRes colorAttr: Int): Int {
+        val typedValue = TypedValue()
+        context.theme.resolveAttribute(colorAttr, typedValue, true)
+        return typedValue.data
     }
 
     override fun onDestroyView() {
