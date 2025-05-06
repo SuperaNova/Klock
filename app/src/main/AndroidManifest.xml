@@ -60,6 +60,12 @@
         <service android:name=".ui.main.alarm.notificationManager.AlarmService"
             android:foregroundServiceType="specialUse"
             android:exported="false"/>
+
+        <!-- Add TimerFinishedReceiver -->
+        <receiver 
+            android:name=".timer.TimerFinishedReceiver" 
+            android:enabled="true" 
+            android:exported="false" />
     </application>
 
 </manifest>
