@@ -113,4 +113,9 @@
 
     <string name="stopwatch_title">Stopwatch</string>
 
+    <!-- Timer Notification Strings -->
+    <string name="timer_notification_channel_name">Timer Alerts</string>
+    <string name="timer_notification_channel_description">Notifications for completed timers</string>
+    <string name="timer_notification_content_text">Your timer has finished.</string>
+
 </resources>

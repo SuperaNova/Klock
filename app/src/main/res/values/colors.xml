@@ -24,4 +24,7 @@
     <color name="green">#FF4CAF50</color> <!-- Standard Green -->
     <color name="red">#FFF44336</color>   <!-- Standard Red -->
 
+    <!-- Timer Specific Colors -->
+    <color name="timer_finished_flash_red">#DDFF0000</color> <!-- A strong, slightly transparent red -->
+
 </resources>

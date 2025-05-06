@@ -1,15 +1,14 @@
-package cit.edu.KlockApp
+package cit.edu.KlockApp.ui.settings
 
-import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
+import cit.edu.KlockApp.R
 import com.google.android.material.appbar.MaterialToolbar
 
 class AboutUsActivity : AppCompatActivity() {
@@ -52,7 +51,10 @@ class AboutUsActivity : AppCompatActivity() {
     // Function to apply the currently selected theme
     private fun applyAppTheme() {
         val sharedPreferences: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-        val themeResId = sharedPreferences.getInt(ProfileActivity.PREF_KEY_THEME_ID, ProfileActivity.THEME_DEFAULT_ID)
+        val themeResId = sharedPreferences.getInt(
+            ProfileActivity.PREF_KEY_THEME_ID,
+            ProfileActivity.THEME_DEFAULT_ID
+        )
         setTheme(themeResId)
     }
 

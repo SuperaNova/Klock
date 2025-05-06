@@ -7,9 +7,6 @@ import android.widget.Button
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
-import cit.edu.KlockApp.AboutUsActivity
-import cit.edu.KlockApp.LoginActivity
-import cit.edu.KlockApp.ProfileActivity
 import cit.edu.KlockApp.R
 import android.widget.CheckBox
 import android.widget.Toast

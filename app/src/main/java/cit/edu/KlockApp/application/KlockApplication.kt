@@ -1,4 +1,4 @@
-package cit.edu.KlockApp.Application
+package cit.edu.KlockApp.application
 
 import android.app.Application
 import android.content.SharedPreferences

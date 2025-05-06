@@ -14,7 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="10dp"
-        tools:context=".LoginActivity">
+        tools:context=".ui.settings.LoginActivity">
 
         <LinearLayout
             android:layout_width="match_parent"

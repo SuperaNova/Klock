@@ -1,4 +1,4 @@
-package cit.edu.KlockApp.ui.util
+package cit.edu.KlockApp.util
 
 /**
  * Interface to notify a listener that an item has been moved in a RecyclerView.

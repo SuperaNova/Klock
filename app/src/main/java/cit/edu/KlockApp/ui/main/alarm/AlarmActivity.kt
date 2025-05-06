@@ -9,16 +9,13 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
-import android.widget.Switch
 import android.widget.TimePicker
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -31,7 +28,7 @@ import java.util.Calendar
 // Required imports for theme handling
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
-import cit.edu.KlockApp.ProfileActivity // Assuming constants are here
+import cit.edu.KlockApp.ui.settings.ProfileActivity // Assuming constants are here
 // Import the correct Material types
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.button.MaterialButton

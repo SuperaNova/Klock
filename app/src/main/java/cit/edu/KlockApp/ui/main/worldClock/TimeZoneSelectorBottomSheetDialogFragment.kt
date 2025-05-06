@@ -11,7 +11,6 @@ import androidx.fragment.app.setFragmentResult
 import androidx.recyclerview.widget.LinearLayoutManager
 import cit.edu.KlockApp.databinding.FragmentTimeZoneSelectorBottomSheetBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import java.util.Locale
 import java.util.TimeZone
 
 class TimeZoneSelectorBottomSheetDialogFragment : BottomSheetDialogFragment() {

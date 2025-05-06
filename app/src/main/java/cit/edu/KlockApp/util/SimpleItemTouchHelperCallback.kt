@@ -1,4 +1,4 @@
-package cit.edu.KlockApp.ui.util
+package cit.edu.KlockApp.util
 
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView

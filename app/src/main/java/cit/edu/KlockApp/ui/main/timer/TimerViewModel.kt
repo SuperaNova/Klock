@@ -9,25 +9,16 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import org.json.JSONArray
 import org.json.JSONObject
-import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import android.net.Uri
 import android.media.RingtoneManager
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
-import android.widget.Toast
-import android.provider.Settings
-import cit.edu.KlockApp.timer.TimerFinishedReceiver
+import cit.edu.KlockApp.util.Event
 
 // Define TimerPreset data class
 data class TimerPreset(
@@ -43,6 +34,7 @@ enum class TimerState {
 class TimerViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefs = application.getSharedPreferences("timer_prefs", Context.MODE_PRIVATE)
+    private val soundPrefs = application.getSharedPreferences("timer_sound_prefs", Context.MODE_PRIVATE) // Separate prefs for sound
 
     var initialDurationMillis: Long = 0L
     private var countDownTimer: CountDownTimer? = null
@@ -71,18 +63,19 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     val endTimeMillis: LiveData<Long?> = _endTimeMillis
 
     // LiveData for Timer Sound URI
-    private val _timerSoundUri = MutableLiveData<String>(
-        // Default to alarm sound, or null if none
-        RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)?.toString()
-    )
-    val timerSoundUri: LiveData<String> = _timerSoundUri
+    private val _timerSoundUri = MutableLiveData<String?>() // Allow null initially
+    val timerSoundUri: LiveData<String?> = _timerSoundUri
 
     private var timerJob: Job? = null
     private var targetEndTime: Long = 0L
 
+    private val _requestExactAlarmPermissionEvent = MutableLiveData<Event<Unit>>()
+    val requestExactAlarmPermissionEvent: LiveData<Event<Unit>> = _requestExactAlarmPermissionEvent
+
     init {
         setInitialDuration(0L) // Start with 0 duration initially
         loadPresets() // Load saved presets
+        loadTimerSound() // Load saved timer sound
     }
 
     fun setInitialDuration(durationMillis: Long) {
@@ -285,7 +278,20 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
 
     // Function to update the sound URI
     fun setTimerSound(uri: Uri?) {
-        _timerSoundUri.value = uri?.toString() ?: ""
+        val uriString = uri?.toString()
+        _timerSoundUri.value = uriString
+        saveTimerSound(uriString) // Save when set
+    }
+
+    private fun loadTimerSound() {
+        val savedUriString = soundPrefs.getString(PREF_KEY_TIMER_SOUND_URI, null)
+        _timerSoundUri.value = savedUriString ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)?.toString()
+        Log.d("TimerViewModel", "Loaded timer sound URI: ${_timerSoundUri.value}")
+    }
+
+    private fun saveTimerSound(uriString: String?) {
+        soundPrefs.edit().putString(PREF_KEY_TIMER_SOUND_URI, uriString).apply()
+        Log.d("TimerViewModel", "Saved timer sound URI: $uriString")
     }
 
     // --- AlarmManager Scheduling ---
@@ -294,38 +300,45 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         val context = getApplication<Application>().applicationContext
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-        // Check for permission on Android 12+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-            // Cannot schedule - Maybe notify the user? ViewModel shouldn't directly start activities.
             Log.w("TimerViewModel", "Cannot schedule exact timer alarm, permission missing.")
-            // Consider posting an event to the Fragment to request permission
+            _requestExactAlarmPermissionEvent.value = Event(Unit) // Trigger the event
             return
         }
 
+        val currentLabel = "Timer" // Define currentLabel here
         val intent = Intent(context, TimerFinishedReceiver::class.java).apply {
             action = TimerFinishedReceiver.ACTION_TIMER_FINISHED
-            putExtra(TimerFinishedReceiver.EXTRA_SOUND_URI, _timerSoundUri.value)
-            //putExtra(TimerFinishedReceiver.EXTRA_TIMER_LABEL, "My Timer") // Optional: Add label later
+            val soundUriForIntent = _timerSoundUri.value
+            Log.d("TimerViewModel", "Scheduling broadcast. Sound URI for Intent: $soundUriForIntent")
+            putExtra(TimerFinishedReceiver.EXTRA_SOUND_URI, soundUriForIntent)
+            putExtra(TimerFinishedReceiver.EXTRA_TIMER_LABEL, currentLabel)
         }
 
-        // Use a unique PendingIntent request code for timers
-        val pendingIntent = PendingIntent.getBroadcast(
+        val operationPendingIntent = PendingIntent.getBroadcast(
             context,
-            TIMER_PENDING_INTENT_ID, // Use a constant ID for the timer pending intent
+            TIMER_PENDING_INTENT_ID, 
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val showAppIntent = Intent(context, cit.edu.KlockApp.ui.main.KlockActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK 
+        }
+        val showAppPendingIntent = PendingIntent.getActivity(
+            context, 
+            TIMER_SHOW_APP_PENDING_INTENT_ID, 
+            showAppIntent, 
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerAtMillis, showAppPendingIntent)
+
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
-            } else {
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
-            }
-            Log.d("TimerViewModel", "TimerFinished broadcast scheduled for $triggerAtMillis")
+            alarmManager.setAlarmClock(alarmClockInfo, operationPendingIntent)
+            Log.d("TimerViewModel", "TimerFinished broadcast scheduled as AlarmClock for $triggerAtMillis with label: $currentLabel")
         } catch (e: SecurityException) {
-             Log.e("TimerViewModel", "SecurityException scheduling timer broadcast", e)
-             // Handle case where permission might have been revoked
+             Log.e("TimerViewModel", "SecurityException scheduling timer broadcast as AlarmClock", e)
         }
     }
 
@@ -335,14 +348,15 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         val intent = Intent(context, TimerFinishedReceiver::class.java).apply {
             action = TimerFinishedReceiver.ACTION_TIMER_FINISHED
         }
+        // Must match the operationPendingIntent used in setAlarmClock
         val pendingIntent = PendingIntent.getBroadcast(
             context,
             TIMER_PENDING_INTENT_ID,
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE // Use FLAG_NO_CREATE if you only want to cancel if it exists, but UPDATE_CURRENT is safer for matching.
         )
         alarmManager.cancel(pendingIntent)
-        Log.d("TimerViewModel", "TimerFinished broadcast cancelled")
+        Log.d("TimerViewModel", "TimerFinished broadcast (AlarmClock) cancelled")
     }
 
     override fun onCleared() {
@@ -352,6 +366,8 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     companion object {
-        private const val TIMER_PENDING_INTENT_ID = 9876 // Unique ID for timer pending intent
+        private const val TIMER_PENDING_INTENT_ID = 9876 
+        private const val TIMER_SHOW_APP_PENDING_INTENT_ID = 9877 // New constant
+        private const val PREF_KEY_TIMER_SOUND_URI = "pref_timer_sound_uri"
     }
 }

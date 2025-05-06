@@ -8,9 +8,12 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Add FOREGROUND_SERVICE_MEDIA_PLAYBACK for Android 14+ if targeting API 34 -->
+    <!-- <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" /> -->
 
     <application
-        android:name=".Application.KlockApplication"
+        android:name=".application.KlockApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -30,10 +33,10 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".AboutUsActivity"
+            android:name=".ui.settings.AboutUsActivity"
             android:exported="false" />
         <activity
-            android:name=".ProfileActivity"
+            android:name=".ui.settings.ProfileActivity"
             android:exported="false"
             />
         <activity
@@ -42,11 +45,11 @@
             android:label="@string/title_activity_settings"
             />
         <activity
-            android:name=".RegisterActivity"
+            android:name=".ui.settings.RegisterActivity"
             android:exported="false"
             />
         <activity
-            android:name=".LoginActivity"
+            android:name=".ui.settings.LoginActivity"
             android:exported="false"
             />
         <activity
@@ -63,9 +66,16 @@
 
         <!-- Add TimerFinishedReceiver -->
         <receiver 
-            android:name=".timer.TimerFinishedReceiver" 
+            android:name=".ui.main.timer.TimerFinishedReceiver"
             android:enabled="true" 
             android:exported="false" />
+
+        <service 
+            android:name=".ui.main.timer.TimerSoundService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+            <!-- If targeting Android 14 (API 34) or higher and service plays media: -->
+            <!-- android:foregroundServiceType="mediaPlayback" -->
     </application>
 
 </manifest>

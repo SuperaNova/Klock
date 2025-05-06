@@ -1,4 +1,4 @@
-package cit.edu.KlockApp
+package cit.edu.KlockApp.ui.settings
 
 import androidx.appcompat.app.AppCompatActivity
 import android.app.AlertDialog
@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.RadioGroup
 import androidx.preference.PreferenceManager
+import cit.edu.KlockApp.R
 import com.google.android.material.appbar.MaterialToolbar
 
 class ProfileActivity : AppCompatActivity() {

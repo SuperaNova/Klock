@@ -1,13 +1,10 @@
-package cit.edu.KlockApp
+package cit.edu.KlockApp.ui.settings
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Toast
 import cit.edu.KlockApp.databinding.ActivityLoginBinding
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 
@@ -41,7 +38,10 @@ class LoginActivity : AppCompatActivity() {
 
     private fun applyAppTheme() {
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-        val themeResId = sharedPreferences.getInt(ProfileActivity.PREF_KEY_THEME_ID, ProfileActivity.THEME_DEFAULT_ID)
+        val themeResId = sharedPreferences.getInt(
+            ProfileActivity.PREF_KEY_THEME_ID,
+            ProfileActivity.THEME_DEFAULT_ID
+        )
         setTheme(themeResId)
     }
 

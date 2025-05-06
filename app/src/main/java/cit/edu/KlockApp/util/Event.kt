@@ -1,13 +1,10 @@
-package cit.edu.KlockApp.util
+package cit.edu.KlockApp.util // Or your preferred utility package
 
 /**
  * Used as a wrapper for data that is exposed via a LiveData that represents an event.
- * This prevents the event from being triggered multiple times on configuration changes
- * or when the observer comes back online after being inactive.
  */
 open class Event<out T>(private val content: T) {
 
-    @Suppress("MemberVisibilityCanBePrivate")
     var hasBeenHandled = false
         private set // Allow external read but not write
 

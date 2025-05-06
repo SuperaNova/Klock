@@ -28,7 +28,7 @@ import cit.edu.KlockApp.ui.settings.SettingsActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.appbar.MaterialToolbar
 import androidx.preference.PreferenceManager
-import cit.edu.KlockApp.ProfileActivity
+import cit.edu.KlockApp.ui.settings.ProfileActivity
 
 class KlockActivity : AppCompatActivity() {
 

@@ -8,8 +8,8 @@ import androidx.fragment.app.setFragmentResultListener
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import cit.edu.KlockApp.databinding.FragmentWorldclockBinding
-import cit.edu.KlockApp.ui.util.OnItemMoveListener
-import cit.edu.KlockApp.ui.util.SimpleItemTouchHelperCallback
+import cit.edu.KlockApp.util.OnItemMoveListener
+import cit.edu.KlockApp.util.SimpleItemTouchHelperCallback
 
 class WorldClockFragment : Fragment(), OnItemMoveListener {
 

@@ -2,12 +2,10 @@ package cit.edu.KlockApp.ui.main.timer
 
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import androidx.core.content.ContextCompat
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.TimerPresetAddItemBinding
 import cit.edu.KlockApp.databinding.TimerPresetItemBinding
