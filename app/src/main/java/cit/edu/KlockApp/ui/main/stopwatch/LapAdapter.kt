@@ -3,11 +3,9 @@ package cit.edu.KlockApp.ui.main.stopwatch
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.StopwatchLapItemBinding
 import android.util.TypedValue // Import for theme attribute resolution
 import androidx.annotation.ColorInt // Import for type hint

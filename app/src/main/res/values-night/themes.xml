@@ -1,4 +1,4 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources >
     <!-- Default Theme (Dark) -->
     <style name="Theme.Klock.Default" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Explicitly disable window action bar -->

@@ -1,7 +1,5 @@
 package cit.edu.KlockApp.ui.main.stopwatch
 
-import android.content.Context
-import android.content.res.Resources
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,10 +10,6 @@ import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.FragmentStopwatchBinding
-import android.graphics.Color
-import android.util.TypedValue
-import androidx.annotation.AttrRes
-import androidx.annotation.ColorInt
 
 class StopwatchFragment : Fragment() {
 
@@ -74,26 +68,26 @@ class StopwatchFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        viewModel.elapsedTimeMillis.observe(viewLifecycleOwner, Observer { time ->
+        viewModel.elapsedTimeMillis.observe(viewLifecycleOwner) { time ->
             binding.analogStopwatch.setElapsedTime(time)
-        })
+        }
 
-        viewModel.formattedTime.observe(viewLifecycleOwner, Observer { formattedTime ->
+        viewModel.formattedTime.observe(viewLifecycleOwner) { formattedTime ->
             binding.digitalStopwatch.text = formattedTime
-        })
+        }
 
-        viewModel.state.observe(viewLifecycleOwner, Observer { state ->
+        viewModel.state.observe(viewLifecycleOwner) { state ->
             updateButtonStates(state ?: StopwatchState.IDLE)
-        })
+        }
 
-        viewModel.laps.observe(viewLifecycleOwner, Observer { laps ->
+        viewModel.laps.observe(viewLifecycleOwner) { laps ->
             lapAdapter.submitList(laps)
             if (laps.isNotEmpty()) {
                 binding.lapRecyclerView.post {
                     binding.lapRecyclerView.smoothScrollToPosition(0)
                 }
             }
-        })
+        }
     }
 
     private fun updateButtonStates(state: StopwatchState) {

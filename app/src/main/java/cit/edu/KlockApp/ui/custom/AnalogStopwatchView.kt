@@ -122,13 +122,12 @@ class AnalogStopwatchView @JvmOverloads constructor(
 
     // Function to draw the lap hand
     private fun drawLapHand(canvas: Canvas) {
-        val lapTimeToShowMillis: Long
-        if (lastLapResetElapsedTime < 0L) {
+        val lapTimeToShowMillis: Long = if (lastLapResetElapsedTime < 0L) {
             // Before first lap or after reset: Mirror the main hand
-            lapTimeToShowMillis = elapsedTimeMillis
+            elapsedTimeMillis
         } else {
             // After a lap: Show time elapsed since that lap
-            lapTimeToShowMillis = elapsedTimeMillis - lastLapResetElapsedTime
+            elapsedTimeMillis - lastLapResetElapsedTime
         }
 
         val totalSeconds = lapTimeToShowMillis / 1000f

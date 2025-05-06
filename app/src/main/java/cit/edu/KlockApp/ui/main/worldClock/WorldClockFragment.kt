@@ -1,25 +1,13 @@
 package cit.edu.KlockApp.ui.main.worldClock
 
-import android.graphics.Canvas
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.*
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.setFragmentResultListener
-import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.FragmentWorldclockBinding
-import cit.edu.KlockApp.databinding.FragmentWorldclockItemBinding
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.snackbar.Snackbar
-import java.text.SimpleDateFormat
-import java.util.*
-import java.util.concurrent.TimeUnit
 import cit.edu.KlockApp.ui.util.OnItemMoveListener
 import cit.edu.KlockApp.ui.util.SimpleItemTouchHelperCallback
 
@@ -76,14 +64,20 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
     }
 
     private fun observeViewModel() {
-        viewModel.worldClocks.observe(viewLifecycleOwner, Observer { clocks ->
-            android.util.Log.d("WorldClockFragment", "WorldClocks observer triggered. Received list size: ${clocks.size}, List: $clocks")
-            
+        viewModel.worldClocks.observe(viewLifecycleOwner) { clocks ->
+            android.util.Log.d(
+                "WorldClockFragment",
+                "WorldClocks observer triggered. Received list size: ${clocks.size}, List: $clocks"
+            )
+
             // Submit the list with a completion callback
-            worldClockAdapter.submitList(clocks) { 
+            worldClockAdapter.submitList(clocks) {
                 // This runnable executes after the diff calculation completes
                 val newSize = worldClockAdapter.currentList.size
-                android.util.Log.d("WorldClockFragment", "submitList completed. Adapter list size: $newSize. Comparing to previous size: $previousClockListSize")
+                android.util.Log.d(
+                    "WorldClockFragment",
+                    "submitList completed. Adapter list size: $newSize. Comparing to previous size: $previousClockListSize"
+                )
 
                 // Check if an item was added
                 if (previousClockListSize < newSize) {
@@ -94,7 +88,7 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
                 // Update the stored size using the adapter's current list size after update
                 previousClockListSize = newSize
             }
-        })
+        }
 
         viewModel.isEditMode.observe(viewLifecycleOwner) { isEditing ->
             worldClockAdapter.setEditMode(isEditing)

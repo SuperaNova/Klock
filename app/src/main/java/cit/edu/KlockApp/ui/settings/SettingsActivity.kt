@@ -5,17 +5,14 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.widget.Button
 import android.widget.ImageButton
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
 import cit.edu.KlockApp.AboutUsActivity
 import cit.edu.KlockApp.LoginActivity
 import cit.edu.KlockApp.ProfileActivity
 import cit.edu.KlockApp.R
-import android.view.View
 import android.widget.CheckBox
 import android.widget.Toast
-import com.google.android.material.appbar.MaterialToolbar
 
 class SettingsActivity : AppCompatActivity() {
 

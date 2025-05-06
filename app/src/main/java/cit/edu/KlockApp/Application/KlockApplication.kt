@@ -1,13 +1,9 @@
 package cit.edu.KlockApp.Application
 
-import android.app.Activity
 import android.app.Application
 import android.content.SharedPreferences
-import android.os.Bundle
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.PreferenceManager
-import cit.edu.KlockApp.ProfileActivity
-import cit.edu.KlockApp.R
 
 class KlockApplication : Application() {
 

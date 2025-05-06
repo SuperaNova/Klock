@@ -4,14 +4,11 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.os.Handler
-import android.os.Looper
 import android.util.AttributeSet
 import android.view.View
 import cit.edu.KlockApp.R // Import R class
 import java.util.Calendar
 import java.util.TimeZone
-import androidx.core.content.ContextCompat // Import ContextCompat
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -73,7 +70,7 @@ class AnalogClockView @JvmOverloads constructor(
 
     fun setTimeMillis(timeMillis: Long) {
         this.currentTimeMillis = timeMillis
-        if (visibility == View.VISIBLE) { // Only invalidate if visible
+        if (visibility == VISIBLE) { // Only invalidate if visible
            invalidate() // Request redraw
         }
     }
