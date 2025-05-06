@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
 
     <application
+        android:name=".Application.KlockApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -17,7 +18,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Klock"
+        android:theme="@style/Theme.Klock.Default"
         tools:targetApi="31">
 
         <activity
@@ -28,34 +29,30 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".LandingActivity"
-            android:exported="false"/>
         <activity
             android:name=".AboutUsActivity"
             android:exported="false" />
         <activity
             android:name=".ProfileActivity"
             android:exported="false"
-            android:theme="@style/Theme.Klock" />
+            />
         <activity
             android:name=".ui.settings.SettingsActivity"
             android:exported="false"
             android:label="@string/title_activity_settings"
-            android:theme="@style/Theme.Klock"/>
+            />
         <activity
             android:name=".RegisterActivity"
             android:exported="false"
-            android:theme="@style/Theme.Klock"/>
+            />
         <activity
             android:name=".LoginActivity"
             android:exported="false"
-            android:theme="@style/Theme.Klock"/>
+            />
         <activity
             android:name=".ui.main.alarm.AlarmActivity"
             android:exported="false"
-            android:theme="@style/Theme.Klock"/>
+            />
 
         <receiver android:name=".ui.main.alarm.notificationManager.SnoozeReceiver" />
         <receiver android:name=".ui.main.alarm.notificationManager.AlarmReceiver"/>

@@ -14,6 +14,9 @@
     <color name="oxford_blue">#212A37</color>
     <color name="eggshell_white_darkened">#CCC6B5</color>
 
+    <!-- Define 54% alpha oxford blue for secondary text -->
+    <color name="oxford_blue_alpha54">#8A212A37</color>
+
     <!-- Removed Day/Night Backgrounds for World Clock Item -->
 
 </resources>

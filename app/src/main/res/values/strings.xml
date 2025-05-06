@@ -69,6 +69,7 @@
     <!-- Menu Bar -->
     <string name="menu_setting">Settings</string>
     <string name="menu_add">Add</string>
+    <string name="menu_edit">Edit</string>
 
     <!-- General -->
     <string name="add_timer_preset">Add timer preset</string>
@@ -97,5 +98,19 @@
     <string name="edit">Edit</string>
     <string name="save">Save</string>
     <string name="search_timezone">Search timezone</string>
+
+    <string name="title_notifications">Notifications</string>
+
+    <string name="twenty_four_hour_format_title">Use 24-hour format</string>
+    <string name="twenty_four_hour_format_summary">Display time using 24-hour format</string>
+
+    <string name="pref_category_theme">Theme</string>
+    <string name="pref_key_color_theme">pref_color_theme</string>
+    <string name="pref_theme_default_title">Default</string>
+    <string name="pref_theme_default_value">default</string>
+    <string name="pref_theme_oxford_title">Oxford</string>
+    <string name="pref_theme_oxford_value">oxford</string>
+
+    <string name="stopwatch_title">Stopwatch</string>
 
 </resources>

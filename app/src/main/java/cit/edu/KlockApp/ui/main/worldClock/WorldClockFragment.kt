@@ -30,12 +30,10 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
     private val viewModel: WorldClockViewModel by activityViewModels()
     private lateinit var worldClockAdapter: WorldClockAdapter
     private var itemTouchHelper: ItemTouchHelper? = null
-    private var editMenuItem: MenuItem? = null
     private var previousClockListSize = 0 // Variable to store previous list size
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setHasOptionsMenu(true)
 
         setFragmentResultListener(TimeZoneSelectorBottomSheetDialogFragment.REQUEST_KEY) { requestKey, bundle ->
             android.util.Log.d("WorldClockFragment", "Fragment result received: Key=$requestKey")
@@ -100,9 +98,13 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
 
         viewModel.isEditMode.observe(viewLifecycleOwner) { isEditing ->
             worldClockAdapter.setEditMode(isEditing)
-            updateEditMenuIcon(isEditing)
             binding.fabAddWorldClock.isEnabled = !isEditing
         }
+    }
+
+    // Public function for Activity to call
+    fun toggleEditMode() {
+        viewModel.toggleEditMode()
     }
 
     fun showTimeZoneSelector() {
@@ -116,57 +118,11 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
         viewModel.exitEditMode()
         itemTouchHelper?.attachToRecyclerView(null)
         itemTouchHelper = null
-        editMenuItem = null
         super.onDestroyView()
         _binding = null
     }
 
-    private fun updateEditMenuIcon(isEditing: Boolean) {
-        if (isEditing) {
-            editMenuItem?.setIcon(R.drawable.ic_done_24)
-            editMenuItem?.title = "Done"
-        } else {
-            editMenuItem?.setIcon(R.drawable.ic_edit_24)
-            editMenuItem?.title = "Edit"
-        }
-    }
-
     override fun onItemMove(fromPosition: Int, toPosition: Int) {
         viewModel.moveClock(fromPosition, toPosition)
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.menu_main, menu)
-        editMenuItem = menu.findItem(R.id.action_edit_reorder)
-        super.onCreateOptionsMenu(menu, inflater)
-    }
-
-    override fun onPrepareOptionsMenu(menu: Menu) {
-        val worldClockItem = menu.findItem(R.id.action_add)
-        val editItem = menu.findItem(R.id.action_edit_reorder)
-        val settingsItem = menu.findItem(R.id.action_settings)
-        
-        // Ensure the toolbar add button is visible
-        worldClockItem?.isVisible = true 
-        editItem?.isVisible = true
-        settingsItem?.isVisible = true
-        
-        viewModel.isEditMode.value?.let { updateEditMenuIcon(it) }
-        
-        super.onPrepareOptionsMenu(menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_add -> {
-                showTimeZoneSelector()
-                true
-            }
-            R.id.action_edit_reorder -> {
-                viewModel.toggleEditMode()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
     }
 }
