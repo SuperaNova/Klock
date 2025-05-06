@@ -79,7 +79,6 @@ class SettingsActivity : AppCompatActivity() {
             // Save state on change
             checkBox.setOnCheckedChangeListener { _, isChecked ->
                 sharedPreferences.edit().putBoolean(PREF_KEY_24_HOUR, isChecked).apply()
-                // TODO: Optionally broadcast change or notify relevant components if needed immediately
             }
         }
     }

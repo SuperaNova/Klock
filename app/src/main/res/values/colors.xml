@@ -6,17 +6,23 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="red">#FF0000</color>
     <color name="snow_white">#F0F0EC</color>
     <color name="charcoal">#121212</color>
     <color name="ebony">#222428</color>
     <color name="eggshell_white">#F0EAD6</color>
-    <color name="oxford_blue">#212A37</color>
     <color name="eggshell_white_darkened">#CCC6B5</color>
 
     <!-- Define 54% alpha oxford blue for secondary text -->
     <color name="oxford_blue_alpha54">#8A212A37</color>
 
     <!-- Removed Day/Night Backgrounds for World Clock Item -->
+
+    <!-- Custom Colors -->
+    <color name="oxford_blue">#FF212A37</color> <!-- Dark blue -->
+
+    <!-- Stopwatch Lap Colors -->
+    <color name="default_text_color">?android:attr/textColorPrimary</color> <!-- Use theme default -->
+    <color name="green">#FF4CAF50</color> <!-- Standard Green -->
+    <color name="red">#FFF44336</color>   <!-- Standard Red -->
 
 </resources>
