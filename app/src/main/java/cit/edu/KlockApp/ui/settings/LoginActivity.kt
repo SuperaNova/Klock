@@ -3,14 +3,19 @@ package cit.edu.KlockApp.ui.settings
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import cit.edu.KlockApp.databinding.ActivityLoginBinding
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 
 class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply theme BEFORE super.onCreate()
@@ -21,9 +26,12 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Initialize Firebase Auth
+        auth = Firebase.auth
+
         val buttonLogin = binding.buttonLogin
         buttonLogin.setOnClickListener {
-            validateInput()
+            loginUser()
         }
         val buttonSignup = binding.buttonSignup
         buttonSignup.setOnClickListener {
@@ -31,9 +39,22 @@ class LoginActivity : AppCompatActivity() {
         }
         val buttonBack = binding.buttonBack
         buttonBack.setOnClickListener {
+            val intent = Intent(this, SettingsActivity::class.java)
+            startActivity(intent)
             finish()
         }
+    }
 
+    override fun onStart() {
+        super.onStart()
+        // Check if user is signed in (non-null) and update UI accordingly.
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            // User is already signed in, navigate to main activity
+//            showToast("Welcome back, ${'$'}{currentUser.email}!")
+            startActivity(Intent(this, ProfileActivity::class.java))
+            finishAffinity() // Finish all auth-related activities
+        }
     }
 
     private fun applyAppTheme() {
@@ -45,50 +66,36 @@ class LoginActivity : AppCompatActivity() {
         setTheme(themeResId)
     }
 
-    private fun validateInput() {
-        val username = binding.username.text.toString().trim()
+    private fun loginUser() {
+        // Assuming your EditText for username is actually for email for Firebase Auth
+        val email = binding.username.text.toString().trim()
         val password = binding.password.text.toString().trim()
 
-        // Username validation
-        when {
-            username.isEmpty() -> {
-                showToast("Username cannot be empty")
-            }
-            username.length < 4 -> {
-                showToast("Username must be at least 4 characters long")
-            }
-            username.length > 20 -> {
-                showToast("Username must not exceed 20 characters")
-            }
-            // !username.matches(Regex("^[a-zA-Z0-9_.-]+$")) -> {
-            //     showToast("Username can only contain letters, numbers, '_', '-', and '.'")
-            // }
-
-            // Password validation
-            password.isEmpty() -> {
-                showToast("Password cannot be empty")
-            }
-            password.length < 8 -> {
-                showToast("Password must be at least 8 characters long")
-            }
-            // !password.matches(Regex(".*[A-Z].*")) -> {
-            //     showToast("Password must contain at least one uppercase letter")
-            // }
-            // !password.matches(Regex(".*[a-z].*")) -> {
-            //     showToast("Password must contain at least one lowercase letter")
-            // }
-            // !password.matches(Regex(".*\\d.*")) -> {
-            //     showToast("Password must contain at least one number")
-            // }
-            // !password.matches(Regex(".*[!@#\$%^&*()-+=].*")) -> {
-            //     showToast("Password must contain at least one special character (!@#\$%^&*()-+=)")
-            // }
-
-            // If all checks pass
-            else -> {
-                startActivity(Intent(this, ProfileActivity::class.java))
-            }
+        if (email.isEmpty()) {
+            showToast("Email cannot be empty")
+            return
         }
+        if (password.isEmpty()) {
+            showToast("Password cannot be empty")
+            return
+        }
+
+        auth.signInWithEmailAndPassword(email, password)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    // Sign in success, update UI with the signed-in user's information
+                    Log.d("LoginActivity", "signInWithEmail:success")
+                    val user = auth.currentUser
+//                    showToast("Login successful. Welcome ${'$'}{user?.email}!")
+                    // Navigate to KlockActivity or ProfileActivity
+                    startActivity(Intent(this, ProfileActivity::class.java))
+                    finishAffinity() // Finish all auth-related activities
+                } else {
+                    // If sign in fails, display a message to the user.
+                    Log.w("LoginActivity", "signInWithEmail:failure", task.exception)
+                    showToast("Authentication failed: ${'$'}{task.exception?.message}")
+                }
+            }
     }
 
     // Utility function to show a toast

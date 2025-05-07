@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.AlertDialog
 import android.app.PendingIntent
 import android.content.Intent
+import android.media.Ringtone
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
@@ -14,26 +15,25 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
+import android.widget.Switch
 import android.widget.TimePicker
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.ui.main.alarm.notificationManager.AlarmReceiver
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.switchmaterial.SwitchMaterial
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
-// Required imports for theme handling
+import com.google.android.material.appbar.MaterialToolbar
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
-import cit.edu.KlockApp.ui.settings.ProfileActivity // Assuming constants are here
-// Import the correct Material types
-import com.google.android.material.switchmaterial.SwitchMaterial
-import com.google.android.material.button.MaterialButton
-// Import Toolbar
-import androidx.appcompat.widget.Toolbar
+import cit.edu.KlockApp.ui.settings.ProfileActivity
 
 class AlarmActivity : AppCompatActivity() {
 
@@ -45,25 +45,21 @@ class AlarmActivity : AppCompatActivity() {
     private lateinit var vibrateSwitch: SwitchMaterial
     protected lateinit var alarm: Alarm
     private var selectedAlarmSoundUri: Uri? = null
+    private var currentPreviewRingtone: Ringtone? = null
     protected var selectedDays = mutableListOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Apply theme BEFORE super.onCreate()
+        // Apply FULL theme from prefs BEFORE super.onCreate()
         applyAppTheme()
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_alarm)
 
-        // Find and set the toolbar
-        val toolbar: Toolbar = findViewById(R.id.toolbar_alarm)
+        // Setup the toolbar from the layout
+        val toolbar: MaterialToolbar = findViewById(R.id.toolbar_alarm)
         setSupportActionBar(toolbar)
 
-        // Choose the layout based on whether you're creating or editing the alarm
-        if (intent.hasExtra("alarm")) {
-            supportActionBar?.title = "Edit Alarm"
-        } else {
-            supportActionBar?.title = "Create Alarm"
-        }
+        supportActionBar?.title = "Create Alarm"
 
         // Enable the "up button" (back button) in the ActionBar
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -75,8 +71,14 @@ class AlarmActivity : AppCompatActivity() {
         initializeViews()
         setupSnoozeSpinner()
         setupRepeatDialog()
+    }
 
-
+    // Function to apply FULL theme based on SharedPreferences
+    private fun applyAppTheme() {
+        val sharedPreferences: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        // Read the saved theme *Resource ID*
+        val themeResId = sharedPreferences.getInt(ProfileActivity.PREF_KEY_THEME_ID, ProfileActivity.THEME_DEFAULT_ID)
+        setTheme(themeResId) // Apply the chosen FULL theme
     }
 
     // Abstract function for initializing alarm
@@ -120,54 +122,78 @@ class AlarmActivity : AppCompatActivity() {
             val ringtoneManager = RingtoneManager(this)
             ringtoneManager.setType(RingtoneManager.TYPE_ALARM) // Set the type to alarms
 
-            // Get the cursor for the ringtones
             val cursor = ringtoneManager.cursor
-
-            // Prepare lists to hold the sound titles and URIs
             val soundTitles = mutableListOf<String>()
             val soundUris = mutableListOf<Uri>()
 
-            // Loop through the cursor and collect the ringtone titles and URIs
-            while (cursor.moveToNext()) {
-                val title = cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX)
-                val uri = ringtoneManager.getRingtoneUri(cursor.position)
-                soundTitles.add(title)
-                soundUris.add(uri)
+            try {
+                while (cursor.moveToNext()) {
+                    val title = cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX) ?: "Unknown Sound"
+                    val uri = ringtoneManager.getRingtoneUri(cursor.position)
+                    soundTitles.add(title)
+                    soundUris.add(uri)
+                }
+            } finally {
+                cursor.close()
             }
-            cursor.close()
 
-            // Find the currently selected alarm sound index (if any)
-            var selectedSoundIndex = soundUris.indexOfFirst { it.toString() == selectedAlarmSoundUri.toString() }.takeIf { it >= 0 } ?: 0
+            if (soundTitles.isEmpty()) {
+                Toast.makeText(this, "No alarm sounds found.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
 
-            // Remember the current sound in case the user cancels
-            val currentSelectedIndex = selectedSoundIndex
-            val currentSoundUri = selectedAlarmSoundUri
+            val initialSelectedUriString = alarm.alarmSound ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM).toString()
+            var currentSelectedSoundIndex = soundUris.indexOfFirst { it.toString() == initialSelectedUriString }.takeIf { it >= 0 } ?: 0
+            // Ensure currentSelectedSoundIndex is valid, default to 0 if not found or list is small
+            if (currentSelectedSoundIndex >= soundUris.size) currentSelectedSoundIndex = 0
+            
+            // Store the URI that was selected when the dialog opened, for reversion on cancel.
+            val originalSoundUriForDialog = if(soundUris.isNotEmpty()) soundUris[currentSelectedSoundIndex] else null
 
-            AlertDialog.Builder(this)
+            val dialog = AlertDialog.Builder(this)
                 .setTitle("Select Alarm Sound")
-                .setSingleChoiceItems(soundTitles.toTypedArray(), selectedSoundIndex) { _, which ->
-                    // Temporarily update the selected index and URI
-                    selectedSoundIndex = which
-                    selectedAlarmSoundUri = soundUris[which]
+                .setSingleChoiceItems(soundTitles.toTypedArray(), currentSelectedSoundIndex) { _, which ->
+                    currentSelectedSoundIndex = which // Update the persistently tracked index
+                    // Play preview
+                    currentPreviewRingtone?.stop()
+                    currentPreviewRingtone = null
+                    if (which >= 0 && which < soundUris.size) {
+                        try {
+                            currentPreviewRingtone = RingtoneManager.getRingtone(this, soundUris[which])
+                            currentPreviewRingtone?.play()
+                        } catch (e: Exception) {
+                            // Log error or show toast if preview fails
+                        }
+                    }
                 }
                 .setPositiveButton("Done") { _, _ ->
-                    // Update the button text to the newly selected sound
-                    alarmSoundButton.text = soundTitles[selectedSoundIndex]
+                    if (currentSelectedSoundIndex >= 0 && currentSelectedSoundIndex < soundUris.size) {
+                        selectedAlarmSoundUri = soundUris[currentSelectedSoundIndex]
+                        alarm = alarm.copy(alarmSound = selectedAlarmSoundUri.toString())
+                        alarmSoundButton.text = soundTitles[currentSelectedSoundIndex]
+                    } else if (soundUris.isNotEmpty()) { // Fallback if somehow index is bad but list not empty
+                        selectedAlarmSoundUri = soundUris[0]
+                        alarm = alarm.copy(alarmSound = selectedAlarmSoundUri.toString())
+                        alarmSoundButton.text = soundTitles[0]
+                    }
                 }
                 .setNegativeButton("Cancel") { _, _ ->
-                    // Revert to the original values
-                    selectedSoundIndex = currentSelectedIndex
-                    selectedAlarmSoundUri = currentSoundUri
-                    // Show the current/default alarm sound name
-                    alarmSoundButton.text = soundTitles[currentSelectedIndex]
+                    // Revert to the sound that was selected when the dialog was opened
+                    selectedAlarmSoundUri = originalSoundUriForDialog
+                    alarm = alarm.copy(alarmSound = originalSoundUriForDialog.toString())
+                    val originalIndex = soundUris.indexOf(originalSoundUriForDialog)
+                    if (originalIndex != -1 && originalIndex < soundTitles.size) {
+                        alarmSoundButton.text = soundTitles[originalIndex]
+                    } else if (soundTitles.isNotEmpty()){
+                        alarmSoundButton.text = soundTitles[0] // Fallback to first sound title
+                    }
                 }
-                .setOnCancelListener {
-                    // Also handle when user presses the back button
-                    selectedSoundIndex = currentSelectedIndex
-                    selectedAlarmSoundUri = currentSoundUri
-                    alarmSoundButton.text = soundTitles[currentSelectedIndex]
+                .setOnDismissListener { // Handles cancel, back press, and button clicks
+                    currentPreviewRingtone?.stop()
+                    currentPreviewRingtone = null
                 }
-                .show()
+                .create()
+            dialog.show()
         }
     }
 
@@ -374,19 +400,14 @@ class AlarmActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.action_bar_menu, menu)
 
-        // Hide Settings icon for this activity
         val settingsItem = menu?.findItem(R.id.action_settings)
         settingsItem?.isVisible = false
 
-        // Hide Edit icon for this activity
         val editItem = menu?.findItem(R.id.action_edit)
         editItem?.isVisible = false
 
-        // Change Add icon to Checkmark for confirmation
         val confirmAddEditAlarm = menu?.findItem(R.id.action_add)
         confirmAddEditAlarm?.setIcon(R.drawable.check_24px)
-        // Optional: Change title for clarity
-        confirmAddEditAlarm?.title = "Confirm" 
 
         return true
     }
@@ -403,14 +424,5 @@ class AlarmActivity : AppCompatActivity() {
             }
             else -> super.onOptionsItemSelected(item)
         }
-    }
-
-    // Function to apply FULL theme based on SharedPreferences (copied from KlockActivity)
-    private fun applyAppTheme() {
-        val sharedPreferences: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-        // Read the saved theme *Resource ID*
-        // Make sure ProfileActivity constants are accessible here
-        val themeResId = sharedPreferences.getInt(ProfileActivity.PREF_KEY_THEME_ID, ProfileActivity.THEME_DEFAULT_ID)
-        setTheme(themeResId) // Apply the chosen FULL theme
     }
 }

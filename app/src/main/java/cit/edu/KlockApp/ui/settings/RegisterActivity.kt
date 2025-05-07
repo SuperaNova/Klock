@@ -1,81 +1,174 @@
 package cit.edu.KlockApp.ui.settings
 
 import android.content.Intent
+import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageButton
+import android.util.Log
+import android.view.View
 import android.widget.Toast
-import cit.edu.KlockApp.R
+import cit.edu.KlockApp.databinding.ActivityRegisterBinding
+import androidx.preference.PreferenceManager
+import cit.edu.KlockApp.BuildConfig
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import com.google.firebase.auth.UserProfileChangeRequest
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
+import cit.edu.KlockApp.ui.main.KlockActivity
+import com.google.firebase.database.FirebaseDatabase
 
 class RegisterActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityRegisterBinding
+    private lateinit var auth: FirebaseAuth
+    private lateinit var sharedPreferences: SharedPreferences
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Apply theme BEFORE super.onCreate()
-        // applyAppTheme() // REMOVED
-
+        applyAppTheme()
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_register)
+        binding = ActivityRegisterBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        val buttonRegister = findViewById<Button>(R.id.button_register)
-        buttonRegister.setOnClickListener {
-            validateInput()
+        auth = Firebase.auth
+
+        binding.buttonRegister.setOnClickListener {
+            registerUser()
         }
 
-        val buttonBack = findViewById<ImageButton>(R.id.button_back)
-        buttonBack.setOnClickListener {
+        binding.buttonBack.setOnClickListener {
             finish()
         }
     }
 
-    private fun validateInput() {
-        val username = findViewById<EditText>(R.id.username).text.toString().trim()
-        val password = findViewById<EditText>(R.id.password).text.toString().trim()
-
-        // Username validation
-        when {
-            username.isEmpty() -> {
-                showToast("Username cannot be empty")
-            }
-            username.length < 4 -> {
-                showToast("Username must be at least 4 characters long")
-            }
-            username.length > 20 -> {
-                showToast("Username must not exceed 20 characters")
-            }
-            // !username.matches(Regex("^[a-zA-Z0-9_.-]+$")) -> {
-            //     showToast("Username can only contain letters, numbers, '_', '-', and '.'")
-            // }
-
-            // Password validation
-            password.isEmpty() -> {
-                showToast("Password cannot be empty")
-            }
-            password.length < 8 -> {
-                showToast("Password must be at least 8 characters long")
-            }
-            // !password.matches(Regex(".*[A-Z].*")) -> {
-            //     showToast("Password must contain at least one uppercase letter")
-            // }
-            // !password.matches(Regex(".*[a-z].*")) -> {
-            //     showToast("Password must contain at least one lowercase letter")
-            // }
-            // !password.matches(Regex(".*\\d.*")) -> {
-            //     showToast("Password must contain at least one number")
-            // }
-            // !password.matches(Regex(".*[!@#\$%^&*()-+=].*")) -> {
-            //     showToast("Password must contain at least one special character (!@#\$%^&*()-+=)")
-            // }
-
-            // If all checks pass
-            else -> {
-                startActivity(Intent(this, ProfileActivity::class.java))
-            }
-        }
+    private fun applyAppTheme() {
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val themeResId = sharedPreferences.getInt(
+            ProfileActivity.PREF_KEY_THEME_ID,
+            ProfileActivity.THEME_DEFAULT_ID
+        )
+        setTheme(themeResId)
     }
 
-    // Utility function to show a toast
+    private fun registerUser() {
+        val email = binding.email.text.toString().trim()
+        val username = binding.username.text.toString().trim()
+        val password = binding.password.text.toString().trim()
+        val confirmPassword = binding.confirmPassword.text.toString().trim()
+
+        binding.email.error = null
+        binding.username.error = null
+        binding.password.error = null
+        binding.confirmPassword.error = null
+
+        if (email.isEmpty()) {
+            binding.email.error = "Email cannot be empty"
+            binding.email.requestFocus()
+            return
+        }
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            binding.email.error = "Please enter a valid email address"
+            binding.email.requestFocus()
+            return
+        }
+        if (username.isEmpty()) {
+            binding.username.error = "Username cannot be empty"
+            binding.username.requestFocus()
+            return
+        }
+        if (username.length < 3) {
+            binding.username.error = "Username must be at least 3 characters long"
+            binding.username.requestFocus()
+            return
+        }
+        if (password.isEmpty()) {
+            binding.password.error = "Password cannot be empty"
+            binding.password.requestFocus()
+            return
+        }
+        if (password.length < 6) {
+            binding.password.error = "Password must be at least 6 characters long"
+            binding.password.requestFocus()
+            return
+        }
+        if (password != confirmPassword) {
+            binding.confirmPassword.error = "Passwords do not match"
+            binding.confirmPassword.requestFocus()
+            return
+        }
+
+        binding.buttonRegister.isEnabled = false
+        binding.progressBarRegister.visibility = View.VISIBLE
+
+        auth.createUserWithEmailAndPassword(email, password)
+            .addOnCompleteListener(this) { task ->
+                binding.progressBarRegister.visibility = View.GONE
+                binding.buttonRegister.isEnabled = true
+
+                if (task.isSuccessful) {
+                    Log.d("RegisterActivity", "createUserWithEmail:SUCCESS")
+                    val firebaseUser = auth.currentUser
+
+                    if (firebaseUser == null) {
+                        Log.e("RegisterActivity", "CRITICAL: firebaseUser is null even after successful account creation!")
+                        showToast("Registration error. Please try again.")
+                        return@addOnCompleteListener
+                    }
+
+                    Log.d("RegisterActivity", "Attempting to update Firebase Auth displayName for $username")
+                    val profileUpdates = UserProfileChangeRequest.Builder()
+                        .setDisplayName(username)
+                        .build()
+                    firebaseUser.updateProfile(profileUpdates).addOnCompleteListener { profileTask ->
+                        if (profileTask.isSuccessful) {
+                            Log.d("RegisterActivity", "Firebase Auth displayName updated successfully for $username.")
+                        } else {
+                            Log.w("RegisterActivity", "Failed to update Firebase Auth displayName.", profileTask.exception)
+                        }
+                        // DisplayName update is complete (or failed), NOW try RTDB write and then navigate based on RTDB outcome
+
+                        Log.d("RegisterActivity", "Proceeding to write username ('$username') to Realtime Database for UID: ${'$'}{firebaseUser.uid}.")
+                        val uid = firebaseUser.uid
+                        val database = Firebase.database(BuildConfig.DATABASE_URL)
+                        val userRef = database.getReference("usernames").child(uid)
+
+                        userRef.setValue(username)
+                            .addOnSuccessListener {
+                                Log.d("RegisterActivity", "RTDB_WRITE_SUCCESS: Username '$username' saved for UID: $uid. Navigating now...")
+                                showToast("Registration successful. Welcome $username!")
+                                startActivity(Intent(this, ProfileActivity::class.java))
+                                finishAffinity()
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e("RegisterActivity", "RTDB_WRITE_FAILURE: Failed to save username for UID: $uid. Error: ${'$'}{e.message}. Navigating anyway...", e)
+                                showToast("Registration successful (DB username save error). Welcome $username!")
+                                startActivity(Intent(this, ProfileActivity::class.java))
+                                finishAffinity()
+                            }
+                    }
+                } else {
+                    Log.w("RegisterActivity", "createUserWithEmail:FAILURE", task.exception)
+                    var errorMessage = task.exception?.localizedMessage ?: "Unknown registration error. Please try again."
+                    when (task.exception) {
+                        is FirebaseAuthUserCollisionException -> {
+                            errorMessage = "This email address is already in use."
+                            binding.email.error = errorMessage
+                            binding.email.requestFocus()
+                        }
+                        is FirebaseAuthWeakPasswordException -> {
+                            errorMessage = "Password is too weak. Please choose a stronger one (at least 6 characters)."
+                            binding.password.error = errorMessage
+                            binding.password.requestFocus()
+                        }
+                    }
+                    showToast(errorMessage)
+                }
+            }
+    }
+
     private fun showToast(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 }

@@ -1,6 +1,7 @@
 package cit.edu.KlockApp.ui.main.alarm
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -13,6 +14,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.FragmentAlarmBinding
 
 class AlarmFragment : Fragment() {
@@ -56,43 +58,14 @@ class AlarmFragment : Fragment() {
 
         adapter = AlarmAdapter(
             // Inside your AlarmFragment
-            onToggleEnabled = { updated ->
-                // When toggling 'isEnabled', make sure only that property is updated
-                val currentList = vm.alarms.value?.map {
-                    if (it.id == updated.id) updated else it
-                }
-                if (currentList != null) {
-                    vm._alarms.value = currentList
-                    Toast.makeText(requireContext(), "Alarm ${if (updated.isEnabled) "enabled" else "disabled"}", Toast.LENGTH_SHORT).show()
-                }
+            onToggleEnabled  = { updated -> vm.updateAlarm(updated) },
+            onExpandToggled  = { alarm ->
+                // Toggle expansion and persist
+                vm.updateAlarm(alarm.copy(isExpanded = !alarm.isExpanded))
             },
-            onExpandToggled = { alarm ->
-                val newList = vm.alarms.value!!.map {
-                    if (it.id == alarm.id) {
-                        it.copy(isExpanded = !alarm.isExpanded) // Toggle only the selected alarm's expanded state
-                    } else {
-                        it // Leave others unchanged
-                    }
-                }
-                vm._alarms.value = newList // Update the list without affecting isExpanded of other alarms
-            },
-            onLabelChanged = { updated ->
-                val newList = vm.alarms.value?.map {
-                    if (it.id == updated.id) updated else it
-                }
-                if (newList != null) {
-                    vm._alarms.value = newList
-                    Toast.makeText(requireContext(),
-                        "Label changed to “${updated.label}”", Toast.LENGTH_SHORT).show()
-                }
-            },
-            onAlarmTimeAdjust = { updated ->
-                vm.updateAlarm(updated.copy(isExpanded = true))
-            },
-            onVibrateToggle = { updated ->
-                val updatedAlarm = updated.copy(isExpanded = updated.isExpanded) // Retain the current 'isExpanded' state
-                vm.updateAlarm(updatedAlarm)
-            }
+            onLabelChanged   = { updated -> vm.updateAlarm(updated) },
+            onAlarmTimeAdjust= { updated -> vm.updateAlarm(updated) },
+            onVibrateToggle  = { updated -> vm.updateAlarm(updated) }
 
         )
 
@@ -100,28 +73,66 @@ class AlarmFragment : Fragment() {
         b.alarmRecycler.adapter        = adapter
 
         // Swipe to delete
-        ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
-            override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder,
-                                target: RecyclerView.ViewHolder) = false
-
-            override fun onSwiped(vh: RecyclerView.ViewHolder, direction: Int) {
-                val alarm = adapter.currentList[vh.adapterPosition]
-                vm.deleteAlarm(alarm)
-                Toast.makeText(requireContext(),
-                    "${alarm.label} deleted", Toast.LENGTH_SHORT).show()
+        ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            0,
+            ItemTouchHelper.LEFT
+        ) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                return false
             }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position     = viewHolder.adapterPosition
+                val originalList = adapter.currentList.toList()
+                val alarm        = originalList[position]
+
+                val without      = originalList.toMutableList().apply { removeAt(position) }
+                adapter.submitList(without)
+
+                var confirmed = false
+
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Delete Alarm")
+                    .setMessage("Are you sure you want to delete “${alarm.label}”?")
+                    .setPositiveButton("Delete") { _, _ ->
+                        confirmed = true
+                        vm.deleteAlarm(alarm)
+                        Toast.makeText(requireContext(),
+                            "${alarm.label} deleted", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Cancel") { dialog, _ ->
+                        dialog.dismiss()
+                    }
+                    .setOnDismissListener {
+                        if (!confirmed) {
+                            // Only restore if they did NOT confirm
+                            adapter.submitList(originalList)
+                        }
+                    }
+                    .show()
+            }
+
         }).attachToRecyclerView(b.alarmRecycler)
+
+
 
         // Observe LiveData
         vm.alarms.observe(viewLifecycleOwner) { list ->
             adapter.submitList(list.toList())
         }
+
+        // Hook up your “+” menu item via fragment’s host activity’s onOptionsItemSelected
+        // setHasOptionsMenu(true) // REMOVED
     }
 
-    // Public function for Activity to call
+    // Public method to be called from KlockActivity
     fun launchAddAlarm() {
-         val intent = Intent(requireContext(), AlarmActivity::class.java)
-         alarmLauncher.launch(intent)
+        val intent = Intent(requireContext(), AlarmActivity::class.java)
+        alarmLauncher.launch(intent)
     }
 
     override fun onDestroyView() {

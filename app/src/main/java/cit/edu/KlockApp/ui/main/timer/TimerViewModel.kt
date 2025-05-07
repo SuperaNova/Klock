@@ -116,8 +116,15 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
      private fun startCountdown(duration: Long) {
          countDownTimer?.cancel() // Cancel any existing timer
 
-         // Schedule AlarmManager broadcast
-         scheduleTimerFinishedBroadcast(targetEndTime)
+         val broadcastTimeAdjustmentMillis = 1000L
+         // _endTimeMillis.value should hold the actual visual end time. Use a fallback just in case.
+         val actualVisualEndTime = _endTimeMillis.value ?: (System.currentTimeMillis() + duration)
+
+         // Calculate the time for the broadcast to trigger (3 seconds earlier)
+         val broadcastTriggerTime = actualVisualEndTime - broadcastTimeAdjustmentMillis
+
+         // Schedule AlarmManager broadcast with the adjusted trigger time
+         scheduleTimerFinishedBroadcast(broadcastTriggerTime)
 
          countDownTimer = object : CountDownTimer(duration, 50) { // Tick frequently for smooth progress
              override fun onTick(millisUntilFinished: Long) {

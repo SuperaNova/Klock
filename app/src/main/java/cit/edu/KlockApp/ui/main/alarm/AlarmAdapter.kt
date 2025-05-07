@@ -1,6 +1,7 @@
 package cit.edu.KlockApp.ui.main.alarm
 
 import android.app.AlertDialog
+import android.util.Log
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -53,6 +54,8 @@ class AlarmAdapter(
 
 
         fun bind(a: Alarm) {
+            b.toggleButtonGroup.clearOnButtonCheckedListeners()
+
             // Set toggle state based on Alarm.repeatDays
             dayMap.forEach { (buttonId, day) ->
                 val button = b.toggleButtonGroup.findViewById<MaterialButton>(buttonId)
@@ -73,44 +76,41 @@ class AlarmAdapter(
 
             // Handle ToggleButtonGroup changes for repeatDays
             b.toggleButtonGroup.addOnButtonCheckedListener { _, _, _ ->
-                // Get updated repeatDays from UI
-                val selectedDays = dayMap.filter { (id, _) ->
-                    b.toggleButtonGroup.findViewById<MaterialButton>(id).isChecked
-                }.values.toList()
+                val selectedDays = dayMap
+                    .filter { (id, _) -> b.toggleButtonGroup.findViewById<MaterialButton>(id).isChecked }
+                    .values
+                    .toList()
 
-                // Only update if changed to avoid redundant saves
                 if (selectedDays != a.repeatDays) {
-                    val updatedAlarm = a.copy(repeatDays = selectedDays)
-                    onAlarmTimeAdjust(updatedAlarm)
+                    onAlarmTimeAdjust(a.copy(repeatDays = selectedDays))
                 }
             }
 
-            // In your AlarmAdapter, bind isEnabled to the checkbox
-            b.alarmEnabledSwitch.isChecked = a.isEnabled
-            b.alarmEnabledSwitch.setOnCheckedChangeListener { _, isOn ->
-                val updatedAlarm = a.copy(isEnabled = isOn)
-                onToggleEnabled(updatedAlarm)
+            b.alarmEnabledSwitch.apply {
+                setOnCheckedChangeListener(null)
+                isChecked = a.isEnabled
+                setOnCheckedChangeListener { _, isOn ->
+                    onToggleEnabled(a.copy(isEnabled = isOn))
+                }
             }
 
             // Set the checkbox state when binding the view
-            b.vibrateCheckbox.isChecked = a.vibrateOnAlarm
-            b.vibrateCheckbox.setOnCheckedChangeListener { _, isOn ->
-                // Only update the vibrate property and keep other properties unchanged
-                val updated = a.copy(vibrateOnAlarm = isOn)
-                onVibrateToggle(updated)  // This updates only the vibrateOnAlarm property
+            b.vibrateCheckbox.apply {
+                setOnCheckedChangeListener(null)
+                isChecked = a.vibrateOnAlarm
+                setOnCheckedChangeListener { _, isOn ->
+                    onToggleEnabled(a.copy(vibrateOnAlarm = isOn))
+                }
             }
-
-
-
 
             // Set expanded/collapsed content visibility based on `isExpanded`
             b.expandedContentGroup.isVisible = a.isExpanded
             b.divider.isVisible = a.isExpanded
             b.expandIcon.rotation = if (a.isExpanded) 180f else 0f
 
-            // Expand icon click listener to toggle the `isExpanded` state
-            b.expandIcon.setOnClickListener {
-                onExpandToggled(a)  // This will toggle the expansion explicitly
+            // Make the whole header clickable for expand/collapse
+            b.collapsedContentGroup.setOnClickListener {
+                onExpandToggled(a)
             }
 
             // Handle label change
@@ -151,7 +151,7 @@ class AlarmAdapter(
             // Handle time change
             b.alarmChangeTime.setOnClickListener {
                 val ctx = it.context
-                val timePicker = TimePicker(ContextThemeWrapper(ctx, android.R.style.Theme_Holo_Light_Dialog)).apply {
+                val timePicker = TimePicker(ctx).apply {
                     setIs24HourView(false)
                     hour = a.time.hour
                     minute = a.time.minute
@@ -161,7 +161,7 @@ class AlarmAdapter(
                     )
                 }
                 val container = FrameLayout(ctx).apply {
-                    setPadding(48, 16, 48, 0)
+                    setPadding(24, 16, 24, 16)
                     addView(timePicker)
                 }
                 val dialog = AlertDialog.Builder(ctx)
@@ -180,7 +180,6 @@ class AlarmAdapter(
                 dialog.window?.setBackgroundDrawableResource(R.drawable.rounded_dialog_bg)
             }
         }
-
     }
 
     private class AlarmDiff : DiffUtil.ItemCallback<Alarm>() {

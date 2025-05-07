@@ -10,6 +10,9 @@ import androidx.preference.PreferenceManager
 import cit.edu.KlockApp.R
 import android.widget.CheckBox
 import android.widget.Toast
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -21,6 +24,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var sharedPreferences: SharedPreferences
     private var checkbox24Hour: CheckBox? = null
     private var buttonBack: ImageButton? = null
+    private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply FULL theme from prefs BEFORE super.onCreate()
@@ -31,6 +35,7 @@ class SettingsActivity : AppCompatActivity() {
 
         // Initialize SharedPreferences
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        auth = Firebase.auth
 
         // Find Views safely
         buttonBack = findViewById(R.id.back_button)
@@ -49,7 +54,16 @@ class SettingsActivity : AppCompatActivity() {
 
         // Setup Listeners
         buttonBack?.setOnClickListener { finish() }
-        buttonProfile.setOnClickListener { startActivity(Intent(this, LoginActivity::class.java)) }
+        buttonProfile.setOnClickListener {
+            val currentUser = auth.currentUser
+            if (currentUser != null) {
+                // User is logged in, go to ProfileActivity
+                startActivity(Intent(this, ProfileActivity::class.java))
+            } else {
+                // No user logged in, go to LoginActivity
+                startActivity(Intent(this, LoginActivity::class.java))
+            }
+        }
         buttonDeveloper.setOnClickListener { startActivity(Intent(this, AboutUsActivity::class.java)) }
 
         // Setup UI components only if views were found

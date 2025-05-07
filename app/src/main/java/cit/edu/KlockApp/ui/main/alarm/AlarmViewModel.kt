@@ -1,3 +1,4 @@
+
 package cit.edu.KlockApp.ui.main.alarm
 
 import android.app.Application
@@ -89,24 +90,11 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
     fun updateAlarm(updated: Alarm) {
         val current = _alarms.value.orEmpty().toMutableList()
         val idx = current.indexOfFirst { it.id == updated.id }
-
         if (idx >= 0) {
-            val oldAlarm = current[idx]
-            if (oldAlarm != updated) {
-                // Preserve the old values for unchanged fields, such as 'isExpanded', etc.
-                current[idx] = updated.copy(
-                    isExpanded = oldAlarm.isExpanded,  // Preserve expanded state
-                    vibrateOnAlarm = oldAlarm.vibrateOnAlarm  // Preserve vibrateOnAlarm state
-                )
-                _alarms.value = current  // Update the LiveData
-                saveAlarms(current)      // Save the updated alarms list
-                Log.d("AlarmViewModel", "Updated alarm: ${updated.id}")
-            }
-        } else {
-            current.add(updated)
+            current[idx] = updated  // use the exact object you passed in
             _alarms.value = current
             saveAlarms(current)
-            Log.d("AlarmViewModel", "Added new alarm: ${updated.id}")
+            Log.d("AlarmViewModel", "Updated alarm: ${updated.id}")
         }
     }
 
