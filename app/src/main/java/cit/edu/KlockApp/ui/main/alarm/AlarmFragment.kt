@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,7 +15,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.FragmentAlarmBinding
+import cit.edu.KlockApp.ui.main.alarm.notificationManager.AlarmScheduler
 
 class AlarmFragment : Fragment() {
     private var _binding: FragmentAlarmBinding? = null
@@ -42,6 +45,18 @@ class AlarmFragment : Fragment() {
         }
     }
 
+    private fun reschedule(a: Alarm) {
+        vm.updateAlarm(a)
+        val ctx = requireContext()
+        if (a.isEnabled) {
+            AlarmScheduler.schedule(ctx, a)
+            Log.d("AlarmScheduler", "Alarm is Scheduled")
+        } else {
+            AlarmScheduler.cancel(ctx, a)
+            Log.d("AlarmScheduler", "Alarm is Canceled")
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -55,17 +70,15 @@ class AlarmFragment : Fragment() {
             this, ViewModelProvider.AndroidViewModelFactory(requireActivity().application)
         ).get(AlarmViewModel::class.java)
 
-        adapter = AlarmAdapter(
-            // Inside your AlarmFragment
-            onToggleEnabled  = { updated -> vm.updateAlarm(updated) },
-            onExpandToggled  = { alarm ->
-                // Toggle expansion and persist
-                vm.updateAlarm(alarm.copy(isExpanded = !alarm.isExpanded))
-            },
-            onLabelChanged   = { updated -> vm.updateAlarm(updated) },
-            onAlarmTimeAdjust= { updated -> vm.updateAlarm(updated) },
-            onVibrateToggle  = { updated -> vm.updateAlarm(updated) }
 
+
+        adapter = AlarmAdapter(
+            onToggleEnabled   = { reschedule(it) },
+            onExpandToggled   = { reschedule(it.copy(isExpanded = !it.isExpanded)) },
+            onLabelChanged    = { reschedule(it) },
+            onAlarmTimeAdjust = { reschedule(it) },
+            onAlarmSoundChange= { reschedule(it) },
+            onVibrateToggle   = { reschedule(it) }
         )
 
         b.alarmRecycler.layoutManager = LinearLayoutManager(requireContext())
@@ -117,29 +130,13 @@ class AlarmFragment : Fragment() {
 
         }).attachToRecyclerView(b.alarmRecycler)
 
-
-
         // Observe LiveData
         vm.alarms.observe(viewLifecycleOwner) { list ->
             adapter.submitList(list.toList())
         }
 
-        // Hook up your "+" menu item via fragment's host activity's onOptionsItemSelected
+        // Hook up your “+” menu item via fragment’s host activity’s onOptionsItemSelected
         // setHasOptionsMenu(true) // REMOVED
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // Refresh the adapter to re-evaluate time formats when the fragment resumes
-        if (::adapter.isInitialized) {
-            adapter.notifyDataSetChanged()
-        }
-    }
-
-    // Public method to be called from KlockActivity
-    fun launchAddAlarm() {
-        val intent = Intent(requireContext(), AlarmActivity::class.java)
-        alarmLauncher.launch(intent)
     }
 
     override fun onDestroyView() {
@@ -151,5 +148,11 @@ class AlarmFragment : Fragment() {
 
         _binding = null
         super.onDestroyView()
+    }
+
+    // Public method to be called from KlockActivity
+    fun launchAddAlarm() {
+        val intent = Intent(requireContext(), AlarmActivity::class.java)
+        alarmLauncher.launch(intent)
     }
 }

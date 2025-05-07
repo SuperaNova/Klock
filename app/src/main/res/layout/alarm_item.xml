@@ -145,6 +145,7 @@
                 android:background="@null"
                 android:paddingTop="16dp"
                 android:paddingBottom="16dp"
+                android:textColor="?attr/colorPrimary"
                 android:drawablePadding="8dp"/>
 
             <TextView
@@ -156,13 +157,21 @@
                 android:background="@null"
                 android:paddingTop="16dp"
                 android:paddingBottom="16dp"
+                android:textColor="?attr/colorPrimary"
                 android:drawablePadding="8dp"/>
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Repeat"
+                android:layout_marginTop="16dp"
+                android:textSize="14dp"/>
 
             <com.google.android.material.button.MaterialButtonToggleGroup
                 android:id="@+id/toggle_button_group"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:paddingBottom="8dp"
                 app:selectionRequired="false"
                 app:singleSelection="false">
 
@@ -225,23 +234,25 @@
 
             <!-- Ringtone -->
             <TextView
-                android:id="@+id/ringtoneText"
-                style="?android:attr/listSeparatorTextViewStyle"
+                android:id="@+id/alarmChangeSound"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8sp"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp"
+                android:clickable="true"
                 android:text="Default (Sound Name)"
+                android:textColor="?android:attr/textColorSecondary"
                 android:drawablePadding="8dp"
                 app:drawableStartCompat="@drawable/ic_notifications_black_24dp" />
-
-
 
 
             <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/vibrateCheckbox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8sp"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp"
+                android:textColor="?attr/colorOnSurface"
                 android:text="Vibrate while Ringing"/>
             <!-- Delete Button -->
 
