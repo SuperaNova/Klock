@@ -28,7 +28,7 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 
-class AlarmActivity : AppCompatActivity() {
+class AddNewAlarmActivity : AppCompatActivity() {
 
     protected lateinit var timePicker: TimePicker
     private lateinit var repeatButton: Button
