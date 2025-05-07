@@ -7,10 +7,10 @@ import android.util.Log
 import android.widget.Toast
 import cit.edu.KlockApp.databinding.ActivityLoginBinding
 import android.content.SharedPreferences
-import androidx.preference.PreferenceManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import android.content.Context
 
 class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
@@ -50,20 +50,26 @@ class LoginActivity : AppCompatActivity() {
         // Check if user is signed in (non-null) and update UI accordingly.
         val currentUser = auth.currentUser
         if (currentUser != null) {
-            // User is already signed in, navigate to main activity
+            // User is already signed in, navigate to main activity then profile
 //            showToast("Welcome back, ${'$'}{currentUser.email}!")
-            startActivity(Intent(this, ProfileActivity::class.java))
+            val klockIntent = Intent(this, cit.edu.KlockApp.ui.main.KlockActivity::class.java)
+            klockIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            startActivity(klockIntent)
+
+            val profileIntent = Intent(this, ProfileActivity::class.java)
+            startActivity(profileIntent)
             finishAffinity() // Finish all auth-related activities
         }
     }
 
     private fun applyAppTheme() {
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        sharedPreferences = getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
         val themeResId = sharedPreferences.getInt(
             ProfileActivity.PREF_KEY_THEME_ID,
             ProfileActivity.THEME_DEFAULT_ID
         )
         setTheme(themeResId)
+        Log.d("LoginActivity", "Theme applied: $themeResId")
     }
 
     private fun loginUser() {
@@ -87,8 +93,13 @@ class LoginActivity : AppCompatActivity() {
                     Log.d("LoginActivity", "signInWithEmail:success")
                     val user = auth.currentUser
 //                    showToast("Login successful. Welcome ${'$'}{user?.email}!")
-                    // Navigate to KlockActivity or ProfileActivity
-                    startActivity(Intent(this, ProfileActivity::class.java))
+                    // Navigate to KlockActivity then ProfileActivity
+                    val klockIntent = Intent(this, cit.edu.KlockApp.ui.main.KlockActivity::class.java)
+                    klockIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    startActivity(klockIntent)
+
+                    val profileIntent = Intent(this, ProfileActivity::class.java)
+                    startActivity(profileIntent)
                     finishAffinity() // Finish all auth-related activities
                 } else {
                     // If sign in fails, display a message to the user.

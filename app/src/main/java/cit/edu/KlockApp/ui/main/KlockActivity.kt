@@ -27,7 +27,6 @@ import cit.edu.KlockApp.ui.main.worldClock.WorldClockFragment
 import cit.edu.KlockApp.ui.settings.SettingsActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.appbar.MaterialToolbar
-import androidx.preference.PreferenceManager
 import cit.edu.KlockApp.ui.settings.ProfileActivity
 
 class KlockActivity : AppCompatActivity() {
@@ -198,10 +197,10 @@ class KlockActivity : AppCompatActivity() {
 
     // Function to apply FULL theme based on SharedPreferences
     private fun applyAppTheme() {
-        val sharedPreferences: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-        // Read the saved theme *Resource ID*
+        val sharedPreferences = getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
         val themeResId = sharedPreferences.getInt(ProfileActivity.PREF_KEY_THEME_ID, ProfileActivity.THEME_DEFAULT_ID)
-        setTheme(themeResId) // Apply the chosen FULL theme
+        setTheme(themeResId)
+        Log.d("KlockActivity", "Theme applied: $themeResId") // Optional: for debugging
     }
 
 }

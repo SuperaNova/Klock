@@ -1,8 +1,7 @@
 package cit.edu.KlockApp.ui.main.alarm
 
+import android.annotation.SuppressLint
 import android.app.AlertDialog
-import android.util.Log
-import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -15,9 +14,11 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.AlarmItemBinding
+import cit.edu.KlockApp.ui.settings.SettingsActivity
 import com.google.android.material.button.MaterialButton
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.preference.PreferenceManager
 
 class AlarmAdapter(
     private val onToggleEnabled: (Alarm) -> Unit,
@@ -38,9 +39,6 @@ class AlarmAdapter(
     inner class ViewHolder(private val b: AlarmItemBinding) :
         RecyclerView.ViewHolder(b.root) {
 
-        private val timeFmt  = DateTimeFormatter.ofPattern("hh:mm", Locale.getDefault())
-        private val ampmFmt  = DateTimeFormatter.ofPattern("a",    Locale.getDefault())
-
         private val dayMap = mapOf(
             R.id.button_sunday to "Sunday",
             R.id.button_monday to "Monday",
@@ -51,9 +49,15 @@ class AlarmAdapter(
             R.id.button_saturday to "Saturday"
         )
 
-
-
         fun bind(a: Alarm) {
+            val context = b.root.context
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+            val use24HourFormat = prefs.getBoolean(SettingsActivity.PREF_KEY_24_HOUR, false)
+
+            val timeFmtPattern = if (use24HourFormat) "HH:mm" else "hh:mm"
+            val timeFmt = DateTimeFormatter.ofPattern(timeFmtPattern, Locale.getDefault())
+            val ampmFmt = DateTimeFormatter.ofPattern("a", Locale.getDefault())
+
             b.toggleButtonGroup.clearOnButtonCheckedListeners()
 
             // Set toggle state based on Alarm.repeatDays
@@ -64,8 +68,12 @@ class AlarmAdapter(
 
             // Header
             b.alarmTime.text = a.time.format(timeFmt)
-            b.alarmAmPm.text = a.time.format(ampmFmt).uppercase(Locale.getDefault())
-            b.alarmAmPm.isVisible = b.alarmAmPm.text.isNotBlank()
+            if (use24HourFormat) {
+                b.alarmAmPm.isVisible = false
+            } else {
+                b.alarmAmPm.text = a.time.format(ampmFmt).uppercase(Locale.getDefault())
+                b.alarmAmPm.isVisible = b.alarmAmPm.text.isNotBlank()
+            }
             b.alarmLabel.text = a.label
 
             b.alarmRepeatInfo.text = when {
@@ -151,8 +159,11 @@ class AlarmAdapter(
             // Handle time change
             b.alarmChangeTime.setOnClickListener {
                 val ctx = it.context
+                val currentPrefs = PreferenceManager.getDefaultSharedPreferences(ctx)
+                val is24HourDialog = currentPrefs.getBoolean(SettingsActivity.PREF_KEY_24_HOUR, false)
+
                 val timePicker = TimePicker(ctx).apply {
-                    setIs24HourView(false)
+                    setIs24HourView(is24HourDialog)
                     hour = a.time.hour
                     minute = a.time.minute
                     layoutParams = FrameLayout.LayoutParams(
@@ -186,6 +197,7 @@ class AlarmAdapter(
         override fun areItemsTheSame(oldItem: Alarm, newItem: Alarm) =
             oldItem.id == newItem.id
 
+        @SuppressLint("DiffUtilEquals")
         override fun areContentsTheSame(oldItem: Alarm, newItem: Alarm): Boolean {
             return oldItem.id == newItem.id &&
                     oldItem.label == newItem.label &&

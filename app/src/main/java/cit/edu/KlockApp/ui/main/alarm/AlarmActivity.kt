@@ -15,10 +15,8 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
-import android.widget.Switch
 import android.widget.TimePicker
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -32,8 +30,9 @@ import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import com.google.android.material.appbar.MaterialToolbar
 import android.content.SharedPreferences
-import androidx.preference.PreferenceManager
 import cit.edu.KlockApp.ui.settings.ProfileActivity
+import android.content.Context
+import android.util.Log
 
 class AlarmActivity : AppCompatActivity() {
 
@@ -75,10 +74,11 @@ class AlarmActivity : AppCompatActivity() {
 
     // Function to apply FULL theme based on SharedPreferences
     private fun applyAppTheme() {
-        val sharedPreferences: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val sharedPreferences: SharedPreferences = getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
         // Read the saved theme *Resource ID*
         val themeResId = sharedPreferences.getInt(ProfileActivity.PREF_KEY_THEME_ID, ProfileActivity.THEME_DEFAULT_ID)
         setTheme(themeResId) // Apply the chosen FULL theme
+        Log.d("AlarmActivity", "Theme applied: $themeResId")
     }
 
     // Abstract function for initializing alarm
@@ -142,7 +142,7 @@ class AlarmActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val initialSelectedUriString = alarm.alarmSound ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM).toString()
+            val initialSelectedUriString = alarm.alarmSound
             var currentSelectedSoundIndex = soundUris.indexOfFirst { it.toString() == initialSelectedUriString }.takeIf { it >= 0 } ?: 0
             // Ensure currentSelectedSoundIndex is valid, default to 0 if not found or list is small
             if (currentSelectedSoundIndex >= soundUris.size) currentSelectedSoundIndex = 0
@@ -344,11 +344,7 @@ class AlarmActivity : AppCompatActivity() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
-        } else {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pi)
-        }
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
     }
 
     private fun cancelAlarm() {

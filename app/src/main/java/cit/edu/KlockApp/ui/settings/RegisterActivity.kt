@@ -8,7 +8,6 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import cit.edu.KlockApp.databinding.ActivityRegisterBinding
-import androidx.preference.PreferenceManager
 import cit.edu.KlockApp.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
@@ -18,7 +17,7 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import cit.edu.KlockApp.ui.main.KlockActivity
-import com.google.firebase.database.FirebaseDatabase
+import android.content.Context
 
 class RegisterActivity : AppCompatActivity() {
 
@@ -44,12 +43,13 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     private fun applyAppTheme() {
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        sharedPreferences = getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
         val themeResId = sharedPreferences.getInt(
             ProfileActivity.PREF_KEY_THEME_ID,
             ProfileActivity.THEME_DEFAULT_ID
         )
         setTheme(themeResId)
+        Log.d("RegisterActivity", "Theme applied: $themeResId")
     }
 
     private fun registerUser() {
@@ -138,13 +138,25 @@ class RegisterActivity : AppCompatActivity() {
                             .addOnSuccessListener {
                                 Log.d("RegisterActivity", "RTDB_WRITE_SUCCESS: Username '$username' saved for UID: $uid. Navigating now...")
                                 showToast("Registration successful. Welcome $username!")
-                                startActivity(Intent(this, ProfileActivity::class.java))
+                                // Navigate to KlockActivity then ProfileActivity
+                                val klockIntent = Intent(this, KlockActivity::class.java)
+                                klockIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                startActivity(klockIntent)
+
+                                val profileIntent = Intent(this, ProfileActivity::class.java)
+                                startActivity(profileIntent)
                                 finishAffinity()
                             }
                             .addOnFailureListener { e ->
                                 Log.e("RegisterActivity", "RTDB_WRITE_FAILURE: Failed to save username for UID: $uid. Error: ${'$'}{e.message}. Navigating anyway...", e)
                                 showToast("Registration successful (DB username save error). Welcome $username!")
-                                startActivity(Intent(this, ProfileActivity::class.java))
+                                // Navigate to KlockActivity then ProfileActivity
+                                val klockIntent = Intent(this, KlockActivity::class.java)
+                                klockIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                startActivity(klockIntent)
+
+                                val profileIntent = Intent(this, ProfileActivity::class.java)
+                                startActivity(profileIntent)
                                 finishAffinity()
                             }
                     }

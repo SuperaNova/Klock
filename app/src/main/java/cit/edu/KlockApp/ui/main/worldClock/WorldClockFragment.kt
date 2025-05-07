@@ -96,6 +96,14 @@ class WorldClockFragment : Fragment(), OnItemMoveListener {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Refresh the adapter to re-evaluate time formats when the fragment resumes
+        if (::worldClockAdapter.isInitialized) {
+            worldClockAdapter.notifyDataSetChanged()
+        }
+    }
+
     // Public function for Activity to call
     fun toggleEditMode() {
         viewModel.toggleEditMode()

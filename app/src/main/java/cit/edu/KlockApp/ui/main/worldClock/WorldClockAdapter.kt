@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -15,6 +14,8 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.ItemTouchHelper
 import cit.edu.KlockApp.databinding.FragmentWorldclockItemBinding
+import cit.edu.KlockApp.ui.settings.SettingsActivity
+import androidx.preference.PreferenceManager
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -99,7 +100,7 @@ class WorldClockAdapter(
         
         private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
         private val calendar = Calendar.getInstance()
-        private var is24HourFormat: Boolean = false
+        private var lastKnown24HourPref: Boolean? = null
         private var isEditing: Boolean = false
 
         init {
@@ -107,10 +108,12 @@ class WorldClockAdapter(
         }
 
         fun updateFormat() {
-            val currentSetting = DateFormat.is24HourFormat(context)
-            if (currentSetting != is24HourFormat) {
-                is24HourFormat = currentSetting
-                val pattern = if (is24HourFormat) "HH:mm" else "h:mm a"
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+            val use24HourPreference = prefs.getBoolean(SettingsActivity.PREF_KEY_24_HOUR, false)
+
+            if (lastKnown24HourPref != use24HourPreference) {
+                lastKnown24HourPref = use24HourPreference
+                val pattern = if (use24HourPreference) "HH:mm" else "h:mm a"
                 timeFormat.applyPattern(pattern)
             }
         }
@@ -126,7 +129,6 @@ class WorldClockAdapter(
                 if (!editMode) {
                     toggleExpansion(item)
                 }
-                true
             }
             
             binding.deleteButton.setOnClickListener {

@@ -13,6 +13,7 @@ import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import android.content.Context
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -72,10 +73,11 @@ class SettingsActivity : AppCompatActivity() {
 
     // Function to apply FULL theme based on SharedPreferences
     private fun applyAppTheme() {
-        val sharedPreferences: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val sharedPreferences: SharedPreferences = getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
         // Read the saved theme *Resource ID*
         val themeResId = sharedPreferences.getInt(ProfileActivity.PREF_KEY_THEME_ID, ProfileActivity.THEME_DEFAULT_ID)
         setTheme(themeResId) // Apply the chosen FULL theme
+        android.util.Log.d("SettingsActivity", "Theme applied: $themeResId")
     }
 
     private fun setup24HourToggle() {

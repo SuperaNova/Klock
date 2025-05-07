@@ -14,7 +14,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.FragmentAlarmBinding
 
 class AlarmFragment : Fragment() {
@@ -125,8 +124,16 @@ class AlarmFragment : Fragment() {
             adapter.submitList(list.toList())
         }
 
-        // Hook up your “+” menu item via fragment’s host activity’s onOptionsItemSelected
+        // Hook up your "+" menu item via fragment's host activity's onOptionsItemSelected
         // setHasOptionsMenu(true) // REMOVED
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh the adapter to re-evaluate time formats when the fragment resumes
+        if (::adapter.isInitialized) {
+            adapter.notifyDataSetChanged()
+        }
     }
 
     // Public method to be called from KlockActivity
