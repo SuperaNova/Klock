@@ -200,7 +200,7 @@ class ProfileActivity : AppCompatActivity() {
             finish()
         }
     }
-    
+
     private fun clearUserSharedPreferences(prefsName: String) {
         getSharedPreferences(prefsName, Context.MODE_PRIVATE).edit().clear().apply()
     }
@@ -329,10 +329,10 @@ class ProfileActivity : AppCompatActivity() {
                     getSharedPreferences(WORLD_CLOCKS_PREFS_NAME, Context.MODE_PRIVATE).edit().putString(WORLD_CLOCKS_KEY, worldClocksJson).apply()
                 }
 
-                firebaseSettings.timer_settings?.let { ts ->                    
+                firebaseSettings.timer_settings?.let { ts ->
                     ts.presets?.let {
-                         val timerPresetsJson = json.encodeToString(it) 
-                         getSharedPreferences(TIMER_PREFS_NAME, Context.MODE_PRIVATE).edit().putString(TIMER_PRESETS_KEY, timerPresetsJson).apply()
+                        val timerPresetsJson = json.encodeToString(it)
+                        getSharedPreferences(TIMER_PREFS_NAME, Context.MODE_PRIVATE).edit().putString(TIMER_PRESETS_KEY, timerPresetsJson).apply()
                     }
                     getSharedPreferences(TIMER_SOUND_PREFS_NAME, Context.MODE_PRIVATE).edit().putString(TIMER_SOUND_URI_KEY, ts.sound_uri).apply()
                 }

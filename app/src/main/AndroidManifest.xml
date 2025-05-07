@@ -53,7 +53,7 @@
             android:exported="false"
             />
         <activity
-            android:name=".ui.main.alarm.AlarmActivity"
+            android:name=".ui.main.alarm.AddNewAlarmActivity"
             android:exported="false"
             />
 

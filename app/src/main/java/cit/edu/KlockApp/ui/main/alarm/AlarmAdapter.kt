@@ -1,6 +1,7 @@
 package cit.edu.KlockApp.ui.main.alarm
 
 import android.app.AlertDialog
+import android.content.Context
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.net.Uri
@@ -12,6 +13,7 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.TimePicker
 import androidx.core.view.isVisible
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -22,7 +24,6 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import androidx.preference.PreferenceManager
 
 class AlarmAdapter(
     private val onToggleEnabled: (Alarm) -> Unit,
@@ -37,12 +38,10 @@ class AlarmAdapter(
         ViewHolder(AlarmItemBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind()
+        holder.bind(getItem(position))
     }
 
     inner class ViewHolder(private val b: AlarmItemBinding) : RecyclerView.ViewHolder(b.root) {
-        private val timeFmt = DateTimeFormatter.ofPattern("hh:mm", Locale.getDefault())
-        private val ampmFmt = DateTimeFormatter.ofPattern("a", Locale.getDefault())
         private var previewRingtone: Ringtone? = null
 
         private val dayMap = mapOf(
@@ -55,10 +54,14 @@ class AlarmAdapter(
             R.id.button_saturday  to "Saturday"
         )
 
-        fun bind() {
-            val pos = bindingAdapterPosition
-            if (pos == RecyclerView.NO_POSITION) return
-            val a = currentList[pos]
+        fun bind(a: Alarm) {
+            val context = b.root.context
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+            val use24HourFormat = prefs.getBoolean(SettingsActivity.PREF_KEY_24_HOUR, false)
+
+            val timePattern = if (use24HourFormat) "HH:mm" else "hh:mm"
+            val timeFmt = DateTimeFormatter.ofPattern(timePattern, Locale.getDefault())
+            val ampmFmt = DateTimeFormatter.ofPattern("a", Locale.getDefault())
 
             // repeat-days toggles
             b.toggleButtonGroup.clearOnButtonCheckedListeners()
@@ -68,7 +71,7 @@ class AlarmAdapter(
             }
             b.toggleButtonGroup.addOnButtonCheckedListener { _, _, _ ->
                 val p = bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION } ?: return@addOnButtonCheckedListener
-                val fresh = currentList[p]
+                val fresh = getItem(p)
                 val sel = dayMap.filter { (id, _) ->
                     b.toggleButtonGroup.findViewById<MaterialButton>(id).isChecked
                 }.values.toList()
@@ -79,8 +82,12 @@ class AlarmAdapter(
 
             // header
             b.alarmTime.text       = a.time.format(timeFmt)
-            b.alarmAmPm.text       = a.time.format(ampmFmt).uppercase(Locale.getDefault())
-            b.alarmAmPm.isVisible  = b.alarmAmPm.text.isNotBlank()
+            if (use24HourFormat) {
+                b.alarmAmPm.isVisible = false
+            } else {
+                b.alarmAmPm.text       = a.time.format(ampmFmt).uppercase(Locale.getDefault())
+                b.alarmAmPm.isVisible  = b.alarmAmPm.text.isNotBlank()
+            }
             b.alarmLabel.text      = a.label
             b.alarmRepeatInfo.text = when {
                 a.repeatDays.isEmpty() -> "Once"
@@ -93,7 +100,7 @@ class AlarmAdapter(
             b.alarmEnabledSwitch.isChecked = a.isEnabled
             b.alarmEnabledSwitch.setOnCheckedChangeListener { _, on ->
                 val p = bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION } ?: return@setOnCheckedChangeListener
-                val fresh = currentList[p]
+                val fresh = getItem(p)
                 onToggleEnabled(fresh.copy(isEnabled = on))
             }
 
@@ -102,7 +109,7 @@ class AlarmAdapter(
             b.vibrateCheckbox.isChecked = a.vibrateOnAlarm
             b.vibrateCheckbox.setOnCheckedChangeListener { _, on ->
                 val p = bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION } ?: return@setOnCheckedChangeListener
-                val fresh = currentList[p]
+                val fresh = getItem(p)
                 onVibrateToggle(fresh.copy(vibrateOnAlarm = on))
             }
 
@@ -110,80 +117,84 @@ class AlarmAdapter(
             b.expandedContentGroup.isVisible = a.isExpanded
             b.divider.isVisible = a.isExpanded
             b.expandIcon.rotation = if (a.isExpanded) 180f else 0f
-            // Make the whole header clickable for expand/collapse
             b.collapsedContentGroup.setOnClickListener {
                 onExpandToggled(a)
             }
 
             // edit label
             b.alarmChangeLabel.setOnClickListener {
+                val p = bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION } ?: return@setOnClickListener
+                val fresh = getItem(p)
                 val ctx = it.context
                 val input = EditText(ctx).apply {
-                    setText(a.label)
+                    setText(fresh.label)
                     setSelection(text.length)
-                    isSingleLine = true
-                    maxLines = 1
+                    isSingleLine = true; maxLines = 1
                     layoutParams = FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.WRAP_CONTENT
                     )
                 }
-                val container = FrameLayout(ctx).apply {
+                FrameLayout(ctx).apply {
                     setPadding(48, 16, 48, 0)
                     addView(input)
-                }
-                MaterialAlertDialogBuilder(ctx)
-                    .setTitle("Edit Alarm Label")
-                    .setView(container)
-                    .setPositiveButton("Done") { _, _ ->
-                        val newLabel = input.text.toString().trim()
-                        if (newLabel.isNotEmpty() && newLabel != a.label) {
-                            onLabelChanged(a.copy(label = newLabel))
+                }.let { container ->
+                    MaterialAlertDialogBuilder(ctx)
+                        .setTitle("Edit Alarm Label")
+                        .setView(container)
+                        .setPositiveButton("Done") { _, _ ->
+                            val newLabel = input.text.toString().trim()
+                            if (newLabel.isNotEmpty() && newLabel != fresh.label) {
+                                onLabelChanged(fresh.copy(label = newLabel))
+                            }
                         }
-                    }
-                    .setNegativeButton("Cancel", null)
-                    .create()
-                    .apply {
-                        show()
-                        window?.setBackgroundDrawableResource(R.drawable.rounded_dialog_bg)
-                        input.requestFocus()
-                        window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
-                    }
+                        .setNegativeButton("Cancel", null)
+                        .create().apply {
+                            show()
+                            window?.setBackgroundDrawableResource(R.drawable.rounded_dialog_bg)
+                            input.requestFocus()
+                            window?.setSoftInputMode(
+                                WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+                            )
+                        }
+                }
             }
 
             // edit time
             b.alarmChangeTime.setOnClickListener {
-                val ctx = it.context
-                val currentPrefs = PreferenceManager.getDefaultSharedPreferences(ctx)
-                val is24HourDialog = currentPrefs.getBoolean(SettingsActivity.PREF_KEY_24_HOUR, false)
+                val p = bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION } ?: return@setOnClickListener
+                val fresh = getItem(p)
+                val currentPrefs = PreferenceManager.getDefaultSharedPreferences(context)
+                val is24Hour = currentPrefs.getBoolean(SettingsActivity.PREF_KEY_24_HOUR, false)
 
-                val timePicker = TimePicker(ctx).apply {
-                    setIs24HourView(is24HourDialog)
-                    hour = a.time.hour
-                    minute = a.time.minute
+                val timePicker = TimePicker(context).apply {
+                    setIs24HourView(is24Hour)
+                    hour = fresh.time.hour
+                    minute = fresh.time.minute
                     layoutParams = FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
                         FrameLayout.LayoutParams.WRAP_CONTENT
                     )
                 }
-                val container = FrameLayout(ctx).apply {
-                    setPadding(24, 16, 24, 16)
-                    addView(timePicker)
+                val container = FrameLayout(context).apply {
+                    setPadding(48, 16, 48, 0)
+                    addView(timePicker, FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT, android.view.Gravity.CENTER))
                 }
-                MaterialAlertDialogBuilder(ctx)
+
+                MaterialAlertDialogBuilder(context)
                     .setTitle("Edit Alarm Time")
                     .setView(container)
                     .setPositiveButton("Done") { _, _ ->
-                        val newTime = a.time.withHour(timePicker.hour).withMinute(timePicker.minute)
-                        if (newTime != a.time) {
-                            onAlarmTimeAdjust(a.copy(time = newTime))
-                        }
+                        val newTime = fresh.time
+                            .withHour(timePicker.hour)
+                            .withMinute(timePicker.minute)
+                        if (newTime != fresh.time)
+                            onAlarmTimeAdjust(fresh.copy(time = newTime))
                     }
                     .setNegativeButton("Cancel", null)
                     .create()
                     .apply {
                         show()
-                        window?.setBackgroundDrawableResource(R.drawable.rounded_dialog_bg)
                     }
             }
 
@@ -191,7 +202,7 @@ class AlarmAdapter(
             b.alarmChangeSound.text = getTitleForUri(a.alarmSound)
             b.alarmChangeSound.setOnClickListener {
                 val p = bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION } ?: return@setOnClickListener
-                val fresh = currentList[p]
+                val fresh = getItem(p)
                 val ctx = it.context
                 val rm = RingtoneManager(ctx).apply { setType(RingtoneManager.TYPE_ALARM) }
                 val cursor = rm.cursor
@@ -205,7 +216,7 @@ class AlarmAdapter(
                 var selIdx = uris.indexOfFirst { it.toString() == fresh.alarmSound }
                     .takeIf { it >= 0 } ?: 0
 
-                AlertDialog.Builder(ctx)
+                MaterialAlertDialogBuilder(ctx)
                     .setTitle("Select Alarm Sound")
                     .setSingleChoiceItems(titles.toTypedArray(), selIdx) { _, which ->
                         previewRingtone?.stop()
@@ -235,3 +246,4 @@ class AlarmAdapter(
         override fun areContentsTheSame(oldItem: Alarm, newItem: Alarm) = oldItem == newItem
     }
 }
+

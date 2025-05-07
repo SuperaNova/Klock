@@ -17,6 +17,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import cit.edu.KlockApp.R
+import cit.edu.KlockApp.ui.main.alarm.Alarm
 import kotlinx.serialization.modules.contextual
 
 class AlarmService : Service() {
@@ -25,16 +26,13 @@ class AlarmService : Service() {
     private var vibrator: Vibrator? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Get alarmId, label, and vibrateOnAlarm from the Intent
-        val alarmId = intent?.getIntExtra("ALARM_ID", -1) ?: -1
-        val label = intent?.getStringExtra("ALARM_LABEL") ?: "Alarm"
-        val vibrateOnAlarm = intent?.getBooleanExtra("VIBRATE_ON_ALARM", true) ?: true  // Default to true if not set
-        val alarmSound = intent?.getStringExtra("ALARM_SOUND_URI")
+        val alarm = intent?.getParcelableExtra<Alarm>("alarm")
+            ?: return START_NOT_STICKY
 
-        Log.d("AlarmService", "Alarm started with label: $label and ID: $alarmId, vibrateOnAlarm: $vibrateOnAlarm")
+        Log.d("AlarmService", "Alarm started with label: ${alarm.label} and ID: ${alarm.id}, vibrateOnAlarm: ${alarm.vibrateOnAlarm}")
 
         createNotificationChannel()
-        val notification = buildNotification(alarmId, label) // Pass both alarmId and label
+        val notification = buildNotification(alarm.id, alarm.label) // Pass both alarmId and label
 
         // Start foreground with explicit alarm type for Android 14+
         if (Build.VERSION.SDK_INT >= 34) {
@@ -48,20 +46,19 @@ class AlarmService : Service() {
             startForeground(1, notification)
         }
 
-        // Play ringtone if not already playing
-        val alarmUri = if (!alarmSound.isNullOrBlank()) Uri.parse(alarmSound) else RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+
+        // Play only the exact URI on the Alarm object:
+        val uri = Uri.parse(alarm.alarmSound)
         if (ringtone == null || !ringtone!!.isPlaying) {
-            ringtone = RingtoneManager.getRingtone(this, alarmUri)
+            ringtone = RingtoneManager.getRingtone(this, uri)
             ringtone?.play()
         }
 
         // Vibrate only once if the vibrateOnAlarm flag is true
-        if (vibrateOnAlarm) {
-            if (vibrator == null) {
-                vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-                val pattern = longArrayOf(0, 500, 500)
-                vibrator?.vibrate(pattern, 0)
-            }
+        // Vibrate if requested
+        if (alarm.vibrateOnAlarm) {
+            vibrator = vibrator ?: getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            vibrator?.vibrate(longArrayOf(0, 500, 500), 0)
         } else {
             Log.d("AlarmService", "Vibration is disabled based on the setting.")
         }
@@ -139,14 +136,6 @@ class AlarmService : Service() {
             val importance = NotificationManager.IMPORTANCE_HIGH
             val channel = NotificationChannel("alarm_channel_id", name, importance).apply {
                 description = descriptionText
-                setSound(
-                    RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
-                    android.media.AudioAttributes.Builder()
-                        .setUsage(android.media.AudioAttributes.USAGE_ALARM)
-                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
-                setBypassDnd(true)
             }
             val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

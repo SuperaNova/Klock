@@ -12,12 +12,14 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.FragmentAlarmBinding
 import cit.edu.KlockApp.ui.main.alarm.notificationManager.AlarmScheduler
+import cit.edu.KlockApp.ui.settings.SettingsActivity
 
 class AlarmFragment : Fragment() {
     private var _binding: FragmentAlarmBinding? = null
@@ -70,8 +72,6 @@ class AlarmFragment : Fragment() {
             this, ViewModelProvider.AndroidViewModelFactory(requireActivity().application)
         ).get(AlarmViewModel::class.java)
 
-
-
         adapter = AlarmAdapter(
             onToggleEnabled   = { reschedule(it) },
             onExpandToggled   = { reschedule(it.copy(isExpanded = !it.isExpanded)) },
@@ -98,7 +98,8 @@ class AlarmFragment : Fragment() {
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val position     = viewHolder.adapterPosition
+                val position     = viewHolder.bindingAdapterPosition
+                if (position == RecyclerView.NO_POSITION) return
                 val originalList = adapter.currentList.toList()
                 val alarm        = originalList[position]
 
@@ -109,7 +110,7 @@ class AlarmFragment : Fragment() {
 
                 AlertDialog.Builder(requireContext())
                     .setTitle("Delete Alarm")
-                    .setMessage("Are you sure you want to delete “${alarm.label}”?")
+                    .setMessage("Are you sure you want to delete \"${alarm.label}\"?")
                     .setPositiveButton("Delete") { _, _ ->
                         confirmed = true
                         vm.deleteAlarm(alarm)
@@ -121,7 +122,6 @@ class AlarmFragment : Fragment() {
                     }
                     .setOnDismissListener {
                         if (!confirmed) {
-                            // Only restore if they did NOT confirm
                             adapter.submitList(originalList)
                         }
                     }
@@ -130,13 +130,21 @@ class AlarmFragment : Fragment() {
 
         }).attachToRecyclerView(b.alarmRecycler)
 
-        // Observe LiveData
         vm.alarms.observe(viewLifecycleOwner) { list ->
             adapter.submitList(list.toList())
         }
+    }
 
-        // Hook up your “+” menu item via fragment’s host activity’s onOptionsItemSelected
-        // setHasOptionsMenu(true) // REMOVED
+    override fun onResume() {
+        super.onResume()
+        // Log the preference value as seen by the fragment
+        val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val use24Hour = prefs.getBoolean(SettingsActivity.PREF_KEY_24_HOUR, false)
+        Log.d("AlarmFragment", "onResume - use24HourFormat preference: $use24Hour")
+
+        if (::adapter.isInitialized) {
+            adapter.notifyDataSetChanged()
+        }
     }
 
     override fun onDestroyView() {
@@ -152,7 +160,7 @@ class AlarmFragment : Fragment() {
 
     // Public method to be called from KlockActivity
     fun launchAddAlarm() {
-        val intent = Intent(requireContext(), AlarmActivity::class.java)
+        val intent = Intent(requireContext(), AddNewAlarmActivity::class.java)
         alarmLauncher.launch(intent)
     }
 }
