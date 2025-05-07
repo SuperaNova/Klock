@@ -105,12 +105,11 @@ class AlarmAdapter(
 
             // expand/collapse
             b.expandedContentGroup.isVisible = a.isExpanded
-            b.divider.isVisible              = a.isExpanded
-            b.expandIcon.rotation            = if (a.isExpanded) 180f else 0f
+            b.divider.isVisible = a.isExpanded
+            b.expandIcon.rotation = if (a.isExpanded) 180f else 0f
+            // Make the whole header clickable for expand/collapse
             b.collapsedContentGroup.setOnClickListener {
-                val p = bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION } ?: return@setOnClickListener
-                val fresh = currentList[p]
-                onExpandToggled(fresh.copy(isExpanded = !fresh.isExpanded))
+                onExpandToggled(a)
             }
 
             // edit label
