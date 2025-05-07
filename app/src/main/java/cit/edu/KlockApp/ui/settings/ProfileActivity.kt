@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
@@ -12,6 +13,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import cit.edu.KlockApp.BuildConfig
 import cit.edu.KlockApp.R
 import cit.edu.KlockApp.databinding.ActivityProfileBinding
 import com.google.firebase.auth.FirebaseAuth
@@ -44,9 +46,9 @@ private const val ALARMS_KEY = "alarms_key"
 // Data classes for Firebase
 @Serializable
 data class FirebaseTimerPreset(
-    val id: String,
-    val emojiIcon: String,
-    val durationMillis: Long
+    val id: String = "",
+    val emojiIcon: String = "",
+    val durationMillis: Long = 0L
 )
 
 @Serializable
@@ -57,15 +59,15 @@ data class FirebaseTimerSettings(
 
 @Serializable
 data class FirebaseAlarm(
-    val id: Int,
-    val label: String,
-    val time_hour: Int,
-    val time_minute: Int,
+    val id: Int = 0,
+    val label: String = "",
+    val time_hour: Int = 0,
+    val time_minute: Int = 0,
     val repeatDays: List<String>? = null,
-    var isEnabled: Boolean,
-    var snoozeMinutes: Int,
-    var vibrateOnAlarm: Boolean,
-    var alarmSound: String?
+    var isEnabled: Boolean = false,
+    var snoozeMinutes: Int = 0,
+    var vibrateOnAlarm: Boolean = false,
+    var alarmSound: String? = null
 )
 
 @Serializable
@@ -107,7 +109,7 @@ class ProfileActivity : AppCompatActivity() {
 
         firebaseAuth = FirebaseAuth.getInstance()
         currentUser = firebaseAuth.currentUser
-        database = FirebaseDatabase.getInstance()
+        database = FirebaseDatabase.getInstance(BuildConfig.DATABASE_URL)
 
         if (currentUser == null) {
             // Redirect to LoginActivity if no user is logged in
@@ -205,11 +207,22 @@ class ProfileActivity : AppCompatActivity() {
 
     private fun setupSyncButtons() {
         binding.buttonBackupSettings.setOnClickListener {
-            backupSettingsToFirebase()
+            showBackupConfirmationDialog()
         }
         binding.buttonRestoreSettings.setOnClickListener {
             showRestoreConfirmationDialog()
         }
+    }
+
+    private fun showBackupConfirmationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Backup Settings")
+            .setMessage("Are you sure you want to back up your current settings to the cloud?")
+            .setPositiveButton("Backup") { _, _ ->
+                backupSettingsToFirebase()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun backupSettingsToFirebase() {
@@ -218,22 +231,23 @@ class ProfileActivity : AppCompatActivity() {
             return
         }
 
+        binding.progressBarSync.visibility = View.VISIBLE
+        binding.buttonBackupSettings.isEnabled = false
+        binding.buttonRestoreSettings.isEnabled = false
+
         val worldClocksPrefs = getSharedPreferences(WORLD_CLOCKS_PREFS_NAME, Context.MODE_PRIVATE)
         val timerPrefs = getSharedPreferences(TIMER_PREFS_NAME, Context.MODE_PRIVATE)
         val timerSoundPrefs = getSharedPreferences(TIMER_SOUND_PREFS_NAME, Context.MODE_PRIVATE)
         val alarmsPrefs = getSharedPreferences(ALARMS_PREFS_NAME, Context.MODE_PRIVATE)
 
-        // 1. World Clocks
         val worldClocksJsonString = worldClocksPrefs.getString(WORLD_CLOCKS_KEY, null)
         val worldClocksList = worldClocksJsonString?.let { json.decodeFromString<List<String>>(it) }
 
-        // 2. Timer Settings
         val timerPresetsJsonString = timerPrefs.getString(TIMER_PRESETS_KEY, null)
-        val timerPresetsList = timerPresetsJsonString?.let { json.decodeFromString<List<FirebaseTimerPreset>>(it) } // Assuming TimerPreset can be directly used or needs mapping
+        val timerPresetsList = timerPresetsJsonString?.let { json.decodeFromString<List<FirebaseTimerPreset>>(it) }
         val timerSoundUri = timerSoundPrefs.getString(TIMER_SOUND_URI_KEY, null)
         val firebaseTimerSettings = FirebaseTimerSettings(timerPresetsList, timerSoundUri)
 
-        // 3. Alarms
         val alarmsJsonString = alarmsPrefs.getString(ALARMS_KEY, null)
         val originalAlarmsList = alarmsJsonString?.let { Json {ignoreUnknownKeys = true; serializersModule = SerializersModule { contextual(cit.edu.KlockApp.ui.main.alarm.LocalTimeSerializer) }}.decodeFromString<List<cit.edu.KlockApp.ui.main.alarm.Alarm>>(it) }
         val firebaseAlarmsList = originalAlarmsList?.map {
@@ -258,9 +272,15 @@ class ProfileActivity : AppCompatActivity() {
 
         userSettingsRef.setValue(userSettings)
             .addOnSuccessListener {
+                binding.progressBarSync.visibility = View.GONE
+                binding.buttonBackupSettings.isEnabled = true
+                binding.buttonRestoreSettings.isEnabled = true
                 Toast.makeText(this, "Settings backed up successfully!", Toast.LENGTH_SHORT).show()
             }
             .addOnFailureListener {
+                binding.progressBarSync.visibility = View.GONE
+                binding.buttonBackupSettings.isEnabled = true
+                binding.buttonRestoreSettings.isEnabled = true
                 Toast.makeText(this, "Backup failed: ${it.message}", Toast.LENGTH_LONG).show()
                 Log.e("ProfileActivity", "Backup failed", it)
             }
@@ -283,8 +303,16 @@ class ProfileActivity : AppCompatActivity() {
             return
         }
 
+        binding.progressBarSync.visibility = View.VISIBLE
+        binding.buttonBackupSettings.isEnabled = false
+        binding.buttonRestoreSettings.isEnabled = false
+
         userSettingsRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                binding.progressBarSync.visibility = View.GONE
+                binding.buttonBackupSettings.isEnabled = true
+                binding.buttonRestoreSettings.isEnabled = true
+
                 if (!snapshot.exists()) {
                     Toast.makeText(applicationContext, "No backup found in the cloud.", Toast.LENGTH_SHORT).show()
                     return
@@ -296,22 +324,19 @@ class ProfileActivity : AppCompatActivity() {
                     return
                 }
 
-                // 1. Restore World Clocks
                 firebaseSettings.world_clocks?.let {
                     val worldClocksJson = json.encodeToString(it)
                     getSharedPreferences(WORLD_CLOCKS_PREFS_NAME, Context.MODE_PRIVATE).edit().putString(WORLD_CLOCKS_KEY, worldClocksJson).apply()
                 }
 
-                // 2. Restore Timer Settings
                 firebaseSettings.timer_settings?.let { ts ->                    
                     ts.presets?.let {
-                         val timerPresetsJson = json.encodeToString(it) // Assuming FirebaseTimerPreset and local TimerPreset are compatible or mapped
+                         val timerPresetsJson = json.encodeToString(it) 
                          getSharedPreferences(TIMER_PREFS_NAME, Context.MODE_PRIVATE).edit().putString(TIMER_PRESETS_KEY, timerPresetsJson).apply()
                     }
                     getSharedPreferences(TIMER_SOUND_PREFS_NAME, Context.MODE_PRIVATE).edit().putString(TIMER_SOUND_URI_KEY, ts.sound_uri).apply()
                 }
 
-                // 3. Restore Alarms
                 firebaseSettings.alarms?.let { faList ->
                     val originalAlarmsList = faList.map {
                         cit.edu.KlockApp.ui.main.alarm.Alarm(
@@ -323,7 +348,7 @@ class ProfileActivity : AppCompatActivity() {
                             snoozeMinutes = it.snoozeMinutes,
                             vibrateOnAlarm = it.vibrateOnAlarm,
                             alarmSound = it.alarmSound ?: "",
-                            isExpanded = false // Always false on restore
+                            isExpanded = false
                         )
                     }
                     val alarmsJson = Json {serializersModule = SerializersModule { contextual(cit.edu.KlockApp.ui.main.alarm.LocalTimeSerializer) }}.encodeToString(originalAlarmsList)
@@ -334,6 +359,9 @@ class ProfileActivity : AppCompatActivity() {
             }
 
             override fun onCancelled(error: DatabaseError) {
+                binding.progressBarSync.visibility = View.GONE
+                binding.buttonBackupSettings.isEnabled = true
+                binding.buttonRestoreSettings.isEnabled = true
                 Toast.makeText(applicationContext, "Failed to restore settings: ${error.message}", Toast.LENGTH_LONG).show()
                 Log.e("ProfileActivity", "Firebase restore cancelled", error.toException())
             }
